@@ -23,20 +23,20 @@ def catch_database_error(db_func):
         except(mdb.ProgrammingError, mdb.OperationalError) as e:
             traceback.print_exc()
             if 'MySQL server has gone away' in e.message:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_SEVER_GONE_AWAY],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_SEVER_GONE_AWAY]
             elif 'Deadlock found when trying to get lock' in e.message:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_FOUND_DEADLOCK],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_FOUND_DEADLOCK]
             elif 'Lost connection to MySQL server' in e.message:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_LOST_CONNECTION],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_LOST_CONNECTION]
             elif 'Lock wait timeout exceeded' in e.message:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_LOCK_WAIT_TIMEOUT],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_LOCK_WAIT_TIMEOUT]
             elif e.args[0] in [1064, 1366]:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_UNICODE_ERROR],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_UNICODE_ERROR]
             else:
-                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_UNKNOW_ERROR],
+                print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_UNKNOW_ERROR]
         except Exception as e:
             traceback.print_exc()
-            print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_WRITE_FAILED],
+            print dt.now().strftime("%Y-%m-%d %H:%M:%S"), ERROR_MSG_DICT[DB_WRITE_FAILED]
     return handle_exception
 
 

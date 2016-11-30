@@ -1,5 +1,8 @@
 #coding=utf-8
-import time, traceback
+import re
+import time
+import traceback
+import multiprocessing as mp
 from datetime import datetime as dt, timedelta
 from abuyun_proxy import change_tunnel
 
@@ -69,3 +72,36 @@ def curl_str2post_data(curl):
         print "!"*20, "Parsed cURL Failed"
         traceback.print_exc()
     return url, post_data
+
+
+def chin_num2dec(num_str):
+    res = -1
+    try:
+        num = re.search(r'\d+\.?\d*', num_str).group(0)
+        res = int(num)
+    except ValueError as e:
+        # import ipdb;ipdb.set_trace()
+        if '亿' in num_str.encode('utf8'):
+            if len(num.split('.')) == 2:
+                left, right = num.split('.')
+                res = int(left)*pow(10, 8) + int(right)*pow(10, 8-len(right))
+            else:
+                res = int(num) * pow(10, 8)
+        elif '万' in num_str.encode('utf8'):
+            if len(num.split('.')) == 2:
+                left, right = num.split('.')
+                res = int(left)*pow(10, 4) + int(right)*pow(10, 4-len(right))
+            else:
+                res = int(num) * pow(10, 4)
+        else:
+            print 'Unexpected numerical string', num_str
+    except Exception as e:
+        print e
+    return res
+
+
+def create_processes(func, args, concurrency):
+    for _ in range(concurrency):
+        sub_proc = mp.Process(target=func, args=args)
+        sub_proc.daemon = True
+        sub_proc.start()
