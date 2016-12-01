@@ -24,7 +24,7 @@ def topic_info_generator(topic_jobs, topic_results):
         topic_url = topic_jobs.get()
         print 'Parsing ', topic_url
         info_dict = extract_topic_info(topic_url)
-        if len(info_dict) > 2:  # except access_time and url
+        if info_dict and len(info_dict) > 2:  # except access_time and url
             topic_results.put(info_dict)
         topic_jobs.task_done()
     

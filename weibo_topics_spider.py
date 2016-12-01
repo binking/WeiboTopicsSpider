@@ -20,7 +20,7 @@ EXC_LIST = (IndexError, KeyError, ProxyError, Timeout, ConnectTimeout, Connectio
 
 
 @catch_network_error(EXC_LIST)
-@retry(EXC_LIST, tries=3)
+@retry(EXC_LIST, tries=2)
 def extract_topic_info(topic_uri):
     """
     Given topic url, parse HTML code and get topic info
