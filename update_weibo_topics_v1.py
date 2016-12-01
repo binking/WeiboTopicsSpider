@@ -41,7 +41,7 @@ def topic_db_writer(topic_results):
         write_status = update_topics_into_db(info_dict)
         topic_results.task_done()
         
-        
+
 def add_topic_jobs(target, start_date, end_date, interval):
     todo = 0
     list_of_kw = read_topic_url_from_db(start_date=start_date, end_date=end_date, interval=interval)
@@ -50,8 +50,6 @@ def add_topic_jobs(target, start_date, end_date, interval):
     for kw in list_of_kw:
         todo += 1
         target.put(kw)
-        if todo > 9:
-            break
     return todo
 
 
