@@ -78,7 +78,7 @@ def chin_num2dec(num_str):
     res = -1
     try:
         num = re.search(r'\d+\.?\d*', num_str).group(0)
-        res = int(num)
+        res = int(num_str)
     except ValueError as e:
         # import ipdb;ipdb.set_trace()
         if '亿' in num_str.encode('utf8'):

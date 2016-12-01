@@ -67,6 +67,12 @@ def extract_topic_info(topic_uri):
             info_dict['dis_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[1].text.strip()
             info_dict['fans_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[2].text.strip()
             info_dict['read_num_dec'] = chin_num2dec(info_dict['read_num'])
+        else:
+            counters = div_tag.find('td').text.split()
+            info_dict['read_num'] = counters[0][:-2]
+            info_dict['dis_num'] = counters[1][:-2]
+            info_dict['fans_num'] = counters[2][:-2]
+            info_dict['read_num_dec'] = chin_num2dec(info_dict['read_num'])
     # extract guide article
     if guide_parser:
         div_tag = guide_parser.find('div', {'class': 'topic_PCD_guide'})
@@ -96,11 +102,14 @@ def extract_topic_info(topic_uri):
 
 def test_extract_topic_info():
     print 'test case 1'
-    for key, value in extract_topic_info('http://weibo.com/p/100808d9d36d82afccaa73f80e8ef9c11c2c17').items():
+    for key, value in extract_topic_info('http://weibo.com/p/1008083d185932fa0000032b829a63212d4d19').items():
         print key, value
     print 'test case 2'
-    for key, value in extract_topic_info('http://weibo.com/p/10080890d8e011e4d65f67a67cf9acdc23a18e').items():
+    for key, value in extract_topic_info('http://weibo.com/p/100808712f2f6bb55958c0635fcd02a7342bb0').items():
+        print key, value
+    print 'test case 3'
+    for key, value in extract_topic_info('http://weibo.com/p/100808b04e4a60fe00b7b097bea872e8f4e70e').items():
         print key, value
 
 
-# test_extract_topic_info()
+test_extract_topic_info()
