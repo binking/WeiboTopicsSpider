@@ -104,6 +104,11 @@ def update_topics_into_db(info_dict):
         info_dict['image_url'],
         info_dict['topic_url']
     ))
+    conn.commit()
+    print '$'*10, 'Write blue user info succeeded !'
+    cursor.close()
+    conn.close()
+
 
 @catch_database_error
 def read_topic_url_from_db(start_date, end_date, interval=7):

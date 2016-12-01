@@ -35,7 +35,7 @@ def extract_topic_info(topic_uri):
     r = requests.get(topic_uri, timeout=10, proxies={}, cookies=cookie)
     parser = bs(r.text, 'html.parser')
     if len(r.text) < 10000 or parser.find('div', {'class': 'W_error_bg'}):
-        print >>open('access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
+        print >>open('./html/access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
     
     image_url_parser = None; stat_nums_parser = None; guide_parser = None; about_parser = None
