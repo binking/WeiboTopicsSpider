@@ -23,6 +23,7 @@ def topic_info_generator(topic_jobs, topic_results):
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Urls Process pid is %d" % (cp.pid)
         topoic_url = topic_jobs.get()
         info_dict = extract_topic_info(topoic_url)
+        print info_dict
         if len(info_dict) > 2:  # except access_time and url
             topic_results.put(info_dict)
         topic_jobs.task_done()
@@ -52,6 +53,8 @@ def add_topic_jobs(target, start_date, end_date, interval):
     for kw in list_of_kw:
         todo += 1
         target.put(kw)
+        if todo > 19:
+            break
     return todo
 
 
@@ -97,7 +100,7 @@ def test():
 
 
 if __name__=="__main__":
-    print "\n" + "Began Scraping Baidu time is : %s" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
+    print "\n" + "%s Began Update Weibo Topics" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
     start = time.time()
     parser = argparse.ArgumentParser(description='Select date interval to update topics.')
     parser.add_argument('--from', dest='start', help='start date')
@@ -106,4 +109,4 @@ if __name__=="__main__":
     args = parser.parse_args()
     run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
     # test_parse_baidu_results()
-    print "*"*10, "Total Scraping Baidu Time Consumed : %d seconds" % (time.time() - start), "*"*10
+    print "*"*10, "Totally Update Weibo Topics Time Consumed : %d seconds" % (time.time() - start), "*"*10

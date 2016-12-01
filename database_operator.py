@@ -65,15 +65,15 @@ def update_topics_into_db(info_dict):
     }
     """
     insert_trend_sql = """
-        INSERT INTO topictrend (topic_url, crawl_dt, read_num, discussion_num, fans_num, logo_img_url) 
-        SELECT '{url}', '{date}', '{read}', '{dis}', '{fans}', '{img}'
+        INSERT INTO topictrend (topic_url, crawl_dt, read_num, read_num_dec, discussion_num, fans_num, logo_img_url) 
+        SELECT '{url}', '{date}', '{read}', '{read_dec}', '{dis}', '{fans}', '{img}'
         FROM DUAL WHERE NOT EXISTS (
         SELECT * FROM topictrend 
         WHERE topic_url = '{url}' AND crawl_dt = '{date}')
     """
     update_info_sql = """
         UPDATE topicinfo 
-        set title='{title}', introduction='{guide}', read_num='{read}', discussion_num='{dis}', fans_num='{fans}', topic_url='{url}', logo_img_url='{img}'
+        set title='{title}', introduction='{guide}', read_num='{read}', read_num_dec='{read_dec}', discussion_num='{dis}', fans_num='{fans}', topic_url='{url}', logo_img_url='{img}'
         WHERE topic_url='{url}'
     """
     conn = connect_database()
@@ -82,6 +82,7 @@ def update_topics_into_db(info_dict):
         url=info_dict['topic_url'],
         date=info_dict.get('access_time', ''),
         read=info_dict.get('read_num', ''),
+        read_dec=info_dict.get('read_num_dec', 0),
         dis=info_dict.get('dis_num', ''),
         fans=info_dict.get('fans_num', ''),
         img=info_dict.get('image_url', ''),
@@ -92,6 +93,7 @@ def update_topics_into_db(info_dict):
         url=info_dict['topic_url'],
         guide=info_dict.get('guide', ''),
         read=info_dict.get('read_num', ''),
+        read_dec=info_dict.get('read_num_dec', 0),
         dis=info_dict.get('dis_num', ''),
         fans=info_dict.get('fans_num', ''),
         img=info_dict.get('image_url', ''),
