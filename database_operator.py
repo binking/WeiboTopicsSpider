@@ -105,7 +105,7 @@ def update_topics_into_db(info_dict):
         info_dict['topic_url']
     ))
     conn.commit()
-    print '$'*10, 'Write blue user info succeeded !'
+    print '$'*10, 'Update topic info succeeded !'
     cursor.close()
     conn.close()
 

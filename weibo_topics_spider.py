@@ -79,6 +79,8 @@ def extract_topic_info(topic_uri):
             title_tag = li_tag.find(attrs={'class': re.compile('pt_title')})
             detail_tag = li_tag.find(attrs={'class': re.compile('pt_detail')})
             title = title_tag.text.encode('utf8')
+            if not detail_tag:
+                import ipdb; ipdb.set_trace()
             if '分类' in title:  # http://weibo.com/3238362920/about
                 info_dict['type'] = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
             elif '地区' in title:

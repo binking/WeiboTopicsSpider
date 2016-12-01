@@ -88,7 +88,7 @@ def test():
     for i, url in enumerate(test_uris):
         print i, url
         topic_info = extract_topic_info(url)
-        if len(topic_info) > 2:
+        if topic_info and len(topic_info) > 2:
             update_topics_into_db(topic_info)
         if i > 1:
             break
