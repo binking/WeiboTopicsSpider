@@ -1,10 +1,13 @@
 #coding=utf-8
 import sys
 import time
+import random
+import sqlite3
 import traceback
 from datetime import datetime as dt, timedelta
 import MySQLdb as mdb
 from decrators import catch_database_error
+from config import MAIL_CURL_DICT
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -134,3 +137,51 @@ def read_topic_url_from_db(start_date, end_date, interval=7):
 
     for res in cursor.fetchall():
         yield res[0]
+
+
+def pick_cookie_from_sqlite(db_file):
+    # db_name = 'cookies.db'
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT * FROM cookies
+        WHERE is_freezed='N'
+    """)
+    c_id = random.randint(0, len(fetchall()) - 1)
+    cursor.execute("""
+        SELECT cookie FROM cookies
+        WHERE id=%s
+    """, (c_id, ))
+    return cursor.fetchone()[0]
+
+
+def crreate_sqlite_db(db_file):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""CREATE TABLE cookies (
+        id varchar(10) primary key, 
+        mail varchar(20),
+        cookie text,
+        is_freezed varchar(5) default 'N')
+    """)
+    for key in MAIL_CURL_DICT:
+        cursor.execute("""
+            INSERT INTO cookies
+            (mail, cookie)
+            values (%s, %s)
+        """, (key, MAIL_CURL_DICT[key]))
+    cursor.close()
+    conn.commit()
+    conn.close()
+
+def expired_cookie(db_file, mail):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE TABLE cookies
+        SET is_freezed='Y'
+        WHERE mail=%s
+    """, (mail, ))
+    cursor.close()
+    conn.commit()
+    conn.close()
