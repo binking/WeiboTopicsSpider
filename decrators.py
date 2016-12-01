@@ -65,7 +65,7 @@ def catch_network_error(ExceptionToCheck=(Exception, )):
             try:
                 return f(*args, **kwargs)
             except ExceptionToCheck as e:
-                print traceback.format_exc()
+                print str(e)
                 print dt.now().strftime("%Y-%m-%d %H:%M:%S"), 
             # return f(*args, **kwargs)  # still raise Exception
         return catch_f  # true decorator

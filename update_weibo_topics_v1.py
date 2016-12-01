@@ -21,9 +21,9 @@ def topic_info_generator(topic_jobs, topic_results):
     cp = mp.current_process()
     while True:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Urls Process pid is %d" % (cp.pid)
-        topoic_url = topic_jobs.get()
-        info_dict = extract_topic_info(topoic_url)
-        print info_dict
+        topic_url = topic_jobs.get()
+        print 'Parsing ', topic_url
+        info_dict = extract_topic_info(topic_url)
         if len(info_dict) > 2:  # except access_time and url
             topic_results.put(info_dict)
         topic_jobs.task_done()
@@ -37,14 +37,11 @@ def topic_db_writer(topic_results):
     while True:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Topics Process pid is %d" % (cp.pid)
         info_dict = topic_results.get()
-        try:
-            write_status = update_topics_into_db(info_dict)
-            topic_results.task_done()
-        except Exception as e:
-            traceback.print_exc()
-            print dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'Write topic info into database failed'
-
-
+        print 'Writing ', info_dict['topic_url']
+        write_status = update_topics_into_db(info_dict)
+        topic_results.task_done()
+        
+        
 def add_topic_jobs(target, start_date, end_date, interval):
     todo = 0
     list_of_kw = read_topic_url_from_db(start_date=start_date, end_date=end_date, interval=interval)
@@ -53,7 +50,7 @@ def add_topic_jobs(target, start_date, end_date, interval):
     for kw in list_of_kw:
         todo += 1
         target.put(kw)
-        if todo > 19:
+        if todo > 9:
             break
     return todo
 

@@ -38,7 +38,7 @@ def connect_database():
     for _ in range(16):
         seconds = 3*attempt
         try:
-            WEBCRAWLER_DB_CONN = mdb.connect(**OUTER_MYSQL)
+            WEBCRAWLER_DB_CONN = mdb.connect(**QCLOUD_LOCAL_MYSQL)
             # print '$'*10, 'Connected database succeeded...'
             return WEBCRAWLER_DB_CONN
         except mdb.OperationalError as e:
@@ -66,37 +66,43 @@ def update_topics_into_db(info_dict):
     """
     insert_trend_sql = """
         INSERT INTO topictrend (topic_url, crawl_dt, read_num, read_num_dec, discussion_num, fans_num, logo_img_url) 
-        SELECT '{url}', '{date}', '{read}', '{read_dec}', '{dis}', '{fans}', '{img}'
+        SELECT %s, %s, %s, %s, %s, %s, %s
         FROM DUAL WHERE NOT EXISTS (
         SELECT * FROM topictrend 
-        WHERE topic_url = '{url}' AND crawl_dt = '{date}')
+        WHERE topic_url = %s AND crawl_dt = %s)
     """
     update_info_sql = """
         UPDATE topicinfo 
-        set title='{title}', introduction='{guide}', read_num='{read}', read_num_dec='{read_dec}', discussion_num='{dis}', fans_num='{fans}', topic_url='{url}', logo_img_url='{img}'
-        WHERE topic_url='{url}'
+        set title=%s, introduction=%s, read_num=%s, read_num_dec=%s, discussion_num=%s, fans_num=%s, topic_type=%s, topic_region=%s, label=%s, topic_url=%s, logo_img_url=%s
+        WHERE topic_url=%s
     """
     conn = connect_database()
     cursor = conn.cursor()
-    cursor.execute(insert_trend_sql.format(
-        url=info_dict['topic_url'],
-        date=info_dict.get('access_time', ''),
-        read=info_dict.get('read_num', ''),
-        read_dec=info_dict.get('read_num_dec', 0),
-        dis=info_dict.get('dis_num', ''),
-        fans=info_dict.get('fans_num', ''),
-        img=info_dict.get('image_url', ''),
+    cursor.execute(insert_trend_sql, (
+        info_dict['topic_url'],
+        info_dict['access_time'],
+        info_dict.get('read_num', ''),
+        info_dict.get('read_num_dec', 0),
+        info_dict.get('dis_num', ''),
+        info_dict.get('fans_num', ''),
+        info_dict.get('image_url', ''),
+        info_dict['topic_url'],
+        info_dict['access_time']
     ))
 
-    cursor.execute(update_info_sql.format(
-        title=info_dict['title'],
-        url=info_dict['topic_url'],
-        guide=info_dict.get('guide', ''),
-        read=info_dict.get('read_num', ''),
-        read_dec=info_dict.get('read_num_dec', 0),
-        dis=info_dict.get('dis_num', ''),
-        fans=info_dict.get('fans_num', ''),
-        img=info_dict.get('image_url', ''),
+    cursor.execute(update_info_sql, (
+        info_dict['title'],
+        info_dict['guide'],
+        info_dict.get('read_num', ''),
+        info_dict.get('read_num_dec', 0),
+        info_dict.get('dis_num', ''),
+        info_dict.get('fans_num', ''),
+        info_dict.get('type', ''),
+        info_dict.get('region', ''),
+        info_dict.get('label', ''),
+        info_dict['topic_url'],
+        info_dict['image_url'],
+        info_dict['topic_url']
     ))
 
 @catch_database_error
