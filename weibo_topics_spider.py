@@ -30,7 +30,8 @@ def extract_topic_info(topic_uri, redis_key):
     info_dict = {}
     # pick mail account randomly
     r2 = redis.StrictRedis(host='localhost', port=6379, db=0)
-    rand_account = r2.srandmember(redis_key)
+    # rand_account = r2.srandmember(redis_key)
+    rand_account = 'zhejxoxv185015@163.com'
     if not rand_account:
         print 'Weibo Accounts were run out of...'
         return {}
@@ -46,19 +47,23 @@ def extract_topic_info(topic_uri, redis_key):
         print >>open('./html/access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
         r2.srem(redis_key, rand_account)
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
-    
-    image_url_parser = None; stat_nums_parser = None; guide_parser = None; about_parser = None
+    # -- parse description of topic
+    meta_tag = parser.find('meta', {'name': 'description'})
+    if meta_tag:
+        info_dict['guide'] = meta_tag.get('content', '').encode('utf8').strip()
+
+    image_url_parser = None; stat_nums_parser = None; about_parser = None
     for script in parser.find_all('script'):
-        script_text = script.text
+        script_text = script.text.encode('utf8')
         if 'pf_head S_bg2 S_line1' in script_text:
             image_url_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
         elif 'PCD_counter' in script_text:
             stat_nums_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-        elif 'topic_PCD_guide' in script_text:
-            guide_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-        elif 'Pl_Core_T5MultiText__31' in script_text:
+        # elif 'topic_PCD_guide' in script_text or '导语' in script_text:
+        #     guide_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
+        elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text:
+            # no about: http://weibo.com/p/100808bcd9f210dc631a1eec4a9e1bef001f59
             about_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-    # import ipdb; ipdb.set_trace()
     # extract image url
     if image_url_parser:
         div_tag = image_url_parser.find('div', {'class': 'pf_username clearfix'})
@@ -68,8 +73,10 @@ def extract_topic_info(topic_uri, redis_key):
         if div_tag and div_tag.find('img'):
             info_dict['image_url'] = div_tag.find('img').get('src')
     # extract the numbers of read, discuss, and fans
+    import ipdb; ipdb.set_trace()
     if stat_nums_parser:
         div_tag = stat_nums_parser.find('div', {'class': 'PCD_counter'})
+        
         if div_tag and len(div_tag.find_all(attrs={'class': re.compile(r'W_f')})) == 3:  # span or strong
             # info_dict['read_num'] = chin_num2dec(div_tag.find_all(attrs={'class': re.compile(r'W_f')})[0].text)
             info_dict['read_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[0].text.strip()
@@ -83,10 +90,10 @@ def extract_topic_info(topic_uri, redis_key):
             info_dict['fans_num'] = counters[2][:-2]
             info_dict['read_num_dec'] = chin_num2dec(info_dict['read_num'])
     # extract guide article
-    if guide_parser:
-        div_tag = guide_parser.find('div', {'class': 'topic_PCD_guide'})
-        if div_tag and div_tag.find('p', {'class': re.compile(r'W_f')}):
-            info_dict['guide'] = div_tag.find('p', {'class': re.compile(r'W_f')}).text.strip()
+    # if guide_parser:
+    #     div_tag = guide_parser.find('div', {'class': 'topic_PCD_guide'})
+    #     if div_tag and div_tag.find('p', {'class': re.compile(r'W_f')}):
+            
     # extract type, label, and region of topic
     # import ipdb; ipdb.set_trace()
     if about_parser:
@@ -95,30 +102,33 @@ def extract_topic_info(topic_uri, redis_key):
             detail_tag = li_tag.find(attrs={'class': re.compile('pt_detail')})
             title = title_tag.text.encode('utf8')
             if not detail_tag:
-                import ipdb; ipdb.set_trace()
+                print >>open('Other_unknown_abount_parser_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), about_parser
+                continue
+            detail = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
             if '分类' in title:  # http://weibo.com/3238362920/about
-                info_dict['type'] = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
+                info_dict['type'] = detail
             elif '地区' in title:
-                info_dict['region'] = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
+                info_dict['region'] = detail
             elif '标签' in title:
-                info_dict['label'] = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
+                info_dict['label'] = detail
             else:
                 print >>open('Other_unknown_attr_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), about_parser
-    if info_dict['guide'] and info_dict['image_url']:  # can't be none
+    if info_dict['title'] and info_dict['image_url']:  # can't be none
         info_dict['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
         info_dict['topic_url'] = topic_uri
     return info_dict
 
 def test_extract_topic_info():
-    print 'test case 1'
-    for key, value in extract_topic_info('http://weibo.com/p/1008083d185932fa0000032b829a63212d4d19').items():
-        print key, value
+    redis_key = 'weibo:account:mail'
+    # print 'test case 1'
+    # for key, value in extract_topic_info('http://weibo.com/p/100808f9a9c4d653810aa0a0c0f748baf056d1', redis_key).items():
+    #     print key, value
     print 'test case 2'
-    for key, value in extract_topic_info('http://weibo.com/p/100808712f2f6bb55958c0635fcd02a7342bb0').items():
+    for key, value in extract_topic_info('http://weibo.com/p/1008080db448b798b47da2c05305e35b01a4f2', redis_key).items():
         print key, value
     print 'test case 3'
-    for key, value in extract_topic_info('http://weibo.com/p/100808b04e4a60fe00b7b097bea872e8f4e70e').items():
+    for key, value in extract_topic_info('http://weibo.com/p/100808fe0981c53b23fbf9d839602cf9ba1a44', redis_key).items():
         print key, value
 
 
-# test_extract_topic_info()
+test_extract_topic_info()
