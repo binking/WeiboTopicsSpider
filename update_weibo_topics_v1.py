@@ -1,12 +1,14 @@
 #coding=utf-8
 import sys
 import time
+import redis
 import argparse
 import traceback
 from datetime import datetime as dt
 import multiprocessing as mp
 from decrators import catch_database_error
 from utils import create_processes
+from config import WEIBO_ACCOUNT
 from weibo_topics_spider import extract_topic_info
 from database_operator import read_topic_url_from_db, update_topics_into_db
 
@@ -14,7 +16,7 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 
-def topic_info_generator(topic_jobs, topic_results):
+def topic_info_generator(topic_jobs, topic_results, redis_key):
     """
     Producer for urls and topics, Consummer for topics
     """
@@ -22,8 +24,7 @@ def topic_info_generator(topic_jobs, topic_results):
     while True:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Urls Process pid is %d" % (cp.pid)
         topic_url = topic_jobs.get()
-        print 'Parsing ', topic_url
-        info_dict = extract_topic_info(topic_url)
+        info_dict = extract_topic_info(topic_url, redis_key)
         if info_dict and len(info_dict) > 2:  # except access_time and url
             topic_results.put(info_dict)
         topic_jobs.task_done()
@@ -37,7 +38,6 @@ def topic_db_writer(topic_results):
     while True:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Topics Process pid is %d" % (cp.pid)
         info_dict = topic_results.get()
-        print 'Writing ', info_dict['topic_url']
         write_status = update_topics_into_db(info_dict)
         topic_results.task_done()
         
@@ -50,15 +50,23 @@ def add_topic_jobs(target, start_date, end_date, interval):
     for kw in list_of_kw:
         todo += 1
         target.put(kw)
+        if todo > 9:
+            break
     return todo
 
 
 def run_all_worker(date_start, date_end, days_inter):
     try:
+        # load weibo account into redis cache
+        redis_key = 'weibo:account:mail'
+        r = redis.StrictRedis(host='localhost', port=6379, db=0)
+        for mail in WEIBO_ACCOUNT:
+            r.sadd(redis_key, mail)
+
         # Producer is on !!!
         topic_jobs = mp.JoinableQueue()
         topic_results = mp.JoinableQueue()
-        create_processes(topic_info_generator, (topic_jobs, topic_results), 1)
+        create_processes(topic_info_generator, (topic_jobs, topic_results, redis_key), 1)
         create_processes(topic_db_writer, (topic_results,), 2)
 
         cp = mp.current_process()
@@ -102,6 +110,9 @@ if __name__=="__main__":
     parser.add_argument('--to', dest='end', help='end date')
     parser.add_argument('--inter', dest='interval', type=int, help='default from 7 days ago')
     args = parser.parse_args()
-    run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
+    if args.start or args.end or args.interval:
+        run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
+    else:
+        parser.print_usage()
     # test_parse_baidu_results()
     print "*"*10, "Totally Update Weibo Topics Time Consumed : %d seconds" % (time.time() - start), "*"*10

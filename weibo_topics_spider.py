@@ -1,6 +1,7 @@
 #coding=utf-8
 import re
 import json
+import redis
 import random
 import requests
 from datetime import datetime as dt
@@ -21,21 +22,29 @@ EXC_LIST = (IndexError, KeyError, ProxyError, Timeout, ConnectTimeout, Connectio
 
 @catch_network_error(EXC_LIST)
 @retry(EXC_LIST, tries=2)
-def extract_topic_info(topic_uri):
+def extract_topic_info(topic_uri, redis_key):
     """
     Given topic url, parse HTML code and get topic info
+    redis_key = weibo:account:mail, its value is set of email addresses
     """
     info_dict = {}
-    rand_account = WEIBO_ACCOUNT[random.randint(0, len(MAIL_CURL_DICT)-1)]
+    # pick mail account randomly
+    r2 = redis.StrictRedis(host='localhost', port=6379, db=0)
+    rand_account = r2.srandmember(redis_key)
+    if not rand_account:
+        print 'Weibo Accounts were run out of...'
+        return {}
+    print 'Parsing: ', topic_url, ' with account: ', rand_account
     curl_str = MAIL_CURL_DICT[rand_account].format(topic_uri=topic_uri)
     _, cookie = extract_cookie_from_curl(curl_str)
     if not cookie:
         return info_dict
-    aby_proxy = gen_abuyun_proxy()
+    # aby_proxy = gen_abuyun_proxy()
     r = requests.get(topic_uri, timeout=10, proxies={}, cookies=cookie)
     parser = bs(r.text, 'html.parser')
     if len(r.text) < 10000 or parser.find('div', {'class': 'W_error_bg'}):
         print >>open('./html/access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
+        r2.srem(redis_key, rand_account)
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
     
     image_url_parser = None; stat_nums_parser = None; guide_parser = None; about_parser = None

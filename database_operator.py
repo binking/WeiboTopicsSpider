@@ -108,7 +108,7 @@ def update_topics_into_db(info_dict):
         info_dict['topic_url']
     ))
     conn.commit()
-    print '$'*10, 'Update topic info succeeded !'
+    print 'Writing topic %s DONE !!!', info_dict['topic_url']
     cursor.close()
     conn.close()
 
