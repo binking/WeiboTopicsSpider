@@ -34,7 +34,7 @@ def extract_topic_info(topic_uri, redis_key):
     if not rand_account:
         print 'Weibo Accounts were run out of...'
         return {}
-    print 'Parsing: ', topic_url, ' with account: ', rand_account
+    print 'Parsing: ', topic_uri, ' with account: ', rand_account
     curl_str = MAIL_CURL_DICT[rand_account].format(topic_uri=topic_uri)
     _, cookie = extract_cookie_from_curl(curl_str)
     if not cookie:
