@@ -50,8 +50,6 @@ def add_topic_jobs(target, start_date, end_date, interval):
     for kw in list_of_kw:
         todo += 1
         target.put(kw)
-        if todo > 9:
-            break
     return todo
 
 
