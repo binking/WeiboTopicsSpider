@@ -48,10 +48,9 @@ def extract_topic_info(topic_uri, redis_key):
         r2.srem(redis_key, rand_account)
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
     # exclude micro discussion
-    page_title = parser.find('title')
-    if page_title and '在微话题一起聊聊吧！' in page_title.text.encode('utf8'):
-        print 'Ignore Micro Discussion: %s' % page_title.text.split('-')[0]
-        return info_dict
+    # if '访谈问答' in r.text.encode('utf-8'):
+    #     print 'Ignore Micro Discussion: %s' % topic_uri
+    #     return info_dict
     # -- parse description of topic
     meta_tag = parser.find('meta', {'name': 'description'})
     if meta_tag:
@@ -135,4 +134,4 @@ def test_extract_topic_info():
     #    print key, value
 
 
-# test_extract_topic_info()
+test_extract_topic_info()

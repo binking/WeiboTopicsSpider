@@ -66,7 +66,7 @@ def run_all_worker(date_start, date_end, days_inter):
         # Producer is on !!!
         topic_jobs = mp.JoinableQueue()
         topic_results = mp.JoinableQueue()
-        create_processes(topic_info_generator, (topic_jobs, topic_results, redis_key), 1)
+        create_processes(topic_info_generator, (topic_jobs, topic_results, redis_key), 2)
         create_processes(topic_db_writer, (topic_results,), 1)
 
         cp = mp.current_process()
