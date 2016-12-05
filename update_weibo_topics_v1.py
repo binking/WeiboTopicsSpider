@@ -8,7 +8,7 @@ from datetime import datetime as dt
 import multiprocessing as mp
 from decrators import catch_database_error
 from utils import create_processes
-from config import WEIBO_ACCOUNT
+from config import MAIL_CURL_DICT
 from weibo_topics_spider import extract_topic_info
 from database_operator import read_topic_url_from_db, update_topics_into_db
 
@@ -60,14 +60,14 @@ def run_all_worker(date_start, date_end, days_inter):
         # load weibo account into redis cache
         redis_key = 'weibo:account:mail'
         r = redis.StrictRedis(host='localhost', port=6379, db=0)
-        for mail in WEIBO_ACCOUNT:
+        for mail in MAIL_CURL_DICT:
             r.sadd(redis_key, mail)
 
         # Producer is on !!!
         topic_jobs = mp.JoinableQueue()
         topic_results = mp.JoinableQueue()
         create_processes(topic_info_generator, (topic_jobs, topic_results, redis_key), 1)
-        create_processes(topic_db_writer, (topic_results,), 2)
+        create_processes(topic_db_writer, (topic_results,), 1)
 
         cp = mp.current_process()
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)

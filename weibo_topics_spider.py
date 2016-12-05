@@ -13,7 +13,7 @@ from requests.exceptions import (
     ConnectTimeout,
 )
 from abuyun_proxy import gen_abuyun_proxy
-from config import MAIL_CURL_DICT, WEIBO_ACCOUNT
+from config import MAIL_CURL_DICT
 from utils import chin_num2dec, extract_cookie_from_curl
 from decrators import retry, catch_network_error
 
@@ -31,7 +31,7 @@ def extract_topic_info(topic_uri, redis_key):
     # pick mail account randomly
     r2 = redis.StrictRedis(host='localhost', port=6379, db=0)
     # rand_account = r2.srandmember(redis_key)
-    rand_account = 'zhejxoxv185015@163.com'
+    rand_account = 'bogu7289774@163.com'
     if not rand_account:
         print 'Weibo Accounts were run out of...'
         return {}
@@ -73,7 +73,7 @@ def extract_topic_info(topic_uri, redis_key):
         if div_tag and div_tag.find('img'):
             info_dict['image_url'] = div_tag.find('img').get('src')
     # extract the numbers of read, discuss, and fans
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     if stat_nums_parser:
         div_tag = stat_nums_parser.find('div', {'class': 'PCD_counter'})
         
@@ -116,6 +116,9 @@ def extract_topic_info(topic_uri, redis_key):
     if info_dict['title'] and info_dict['image_url']:  # can't be none
         info_dict['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
         info_dict['topic_url'] = topic_uri
+    for key in info_dict:
+        print key, info_dict[key]
+        print "*" * 20
     return info_dict
 
 def test_extract_topic_info():
@@ -131,4 +134,4 @@ def test_extract_topic_info():
         print key, value
 
 
-test_extract_topic_info()
+# test_extract_topic_info()

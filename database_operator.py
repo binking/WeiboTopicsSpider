@@ -41,8 +41,8 @@ def connect_database():
     for _ in range(16):
         seconds = 3*attempt
         try:
-            WEBCRAWLER_DB_CONN = mdb.connect(**QCLOUD_LOCAL_MYSQL)
-            # print '$'*10, 'Connected database succeeded...'
+            # WEBCRAWLER_DB_CONN = mdb.connect(**QCLOUD_LOCAL_MYSQL)
+            WEBCRAWLER_DB_CONN = mdb.connect(**OUTER_MYSQL)
             return WEBCRAWLER_DB_CONN
         except mdb.OperationalError as e:
             print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Sleep %s seconds cuz we can't connect MySQL..." % seconds
@@ -107,8 +107,8 @@ def update_topics_into_db(info_dict):
         info_dict['image_url'],
         info_dict['topic_url']
     ))
-    conn.commit()
-    print 'Writing topic %s DONE !!!', info_dict['topic_url']
+    # conn.commit()
+    print 'Writing topic %s DONE !!!' % info_dict['topic_url']
     cursor.close()
     conn.close()
 
@@ -155,7 +155,7 @@ def pick_cookie_from_sqlite(db_file):
     return cursor.fetchone()[0]
 
 
-def crreate_sqlite_db(db_file):
+def create_sqlite_db(db_file):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE cookies (
