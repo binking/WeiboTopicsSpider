@@ -135,4 +135,4 @@ def test_extract_topic_info():
     #    print key, value
 
 
-test_extract_topic_info()
+# test_extract_topic_info()
