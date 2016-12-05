@@ -30,8 +30,8 @@ def extract_topic_info(topic_uri, redis_key):
     info_dict = {}
     # pick mail account randomly
     r2 = redis.StrictRedis(host='localhost', port=6379, db=0)
-    # rand_account = r2.srandmember(redis_key)
-    rand_account = 'laoshi968020@163.com'
+    rand_account = r2.srandmember(redis_key)
+    # rand_account = 'laoshi968020@163.com'
     if not rand_account:
         print 'Weibo Accounts were run out of...'
         return {}
