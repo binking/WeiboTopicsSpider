@@ -41,8 +41,8 @@ def connect_database():
     for _ in range(16):
         seconds = 3*attempt
         try:
-            # WEBCRAWLER_DB_CONN = mdb.connect(**QCLOUD_LOCAL_MYSQL)
-            WEBCRAWLER_DB_CONN = mdb.connect(**OUTER_MYSQL)
+            WEBCRAWLER_DB_CONN = mdb.connect(**QCLOUD_LOCAL_MYSQL)
+            # WEBCRAWLER_DB_CONN = mdb.connect(**OUTER_MYSQL)
             return WEBCRAWLER_DB_CONN
         except mdb.OperationalError as e:
             print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Sleep %s seconds cuz we can't connect MySQL..." % seconds
@@ -107,7 +107,7 @@ def update_topics_into_db(info_dict):
         info_dict['image_url'],
         info_dict['topic_url']
     ))
-    # conn.commit()
+    conn.commit()
     print 'Writing topic %s DONE !!!' % info_dict['topic_url']
     cursor.close()
     conn.close()
