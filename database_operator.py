@@ -67,6 +67,9 @@ def update_topics_into_db(info_dict):
         image_url:,
     }
     """
+    if not(info_dict.get('read_num') and info_dict.get('dis_num') and info_dict.get('fans_num')):
+        print "Invalid data for uri: %s" % info_dict['topic_url']
+        return True
     insert_trend_sql = """
         INSERT INTO topictrend (topic_url, crawl_dt, read_num, read_num_dec, discussion_num, fans_num, logo_img_url) 
         SELECT %s, %s, %s, %s, %s, %s, %s

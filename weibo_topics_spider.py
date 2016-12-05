@@ -31,12 +31,12 @@ def extract_topic_info(topic_uri, redis_key):
     # pick mail account randomly
     r2 = redis.StrictRedis(host='localhost', port=6379, db=0)
     # rand_account = r2.srandmember(redis_key)
-    rand_account = 'bogu7289774@163.com'
+    rand_account = 'laoshi968020@163.com'
     if not rand_account:
         print 'Weibo Accounts were run out of...'
         return {}
     print 'Parsing: ', topic_uri, ' with account: ', rand_account
-    curl_str = MAIL_CURL_DICT[rand_account].format(topic_uri=topic_uri)
+    curl_str = MAIL_CURL_DICT[rand_account].format(uri=topic_uri)
     _, cookie = extract_cookie_from_curl(curl_str)
     if not cookie:
         return info_dict
@@ -47,6 +47,11 @@ def extract_topic_info(topic_uri, redis_key):
         print >>open('./html/access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
         r2.srem(redis_key, rand_account)
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
+    # exclude micro discussion
+    page_title = parser.find('title')
+    if page_title and '在微话题一起聊聊吧！' in page_title.text.encode('utf8'):
+        print 'Ignore Micro Discussion: %s' % page_title.text.split('-')[0]
+        return info_dict
     # -- parse description of topic
     meta_tag = parser.find('meta', {'name': 'description'})
     if meta_tag:
@@ -73,7 +78,6 @@ def extract_topic_info(topic_uri, redis_key):
         if div_tag and div_tag.find('img'):
             info_dict['image_url'] = div_tag.find('img').get('src')
     # extract the numbers of read, discuss, and fans
-    # import ipdb; ipdb.set_trace()
     if stat_nums_parser:
         div_tag = stat_nums_parser.find('div', {'class': 'PCD_counter'})
         
@@ -116,9 +120,6 @@ def extract_topic_info(topic_uri, redis_key):
     if info_dict['title'] and info_dict['image_url']:  # can't be none
         info_dict['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
         info_dict['topic_url'] = topic_uri
-    for key in info_dict:
-        print key, info_dict[key]
-        print "*" * 20
     return info_dict
 
 def test_extract_topic_info():
@@ -127,11 +128,11 @@ def test_extract_topic_info():
     # for key, value in extract_topic_info('http://weibo.com/p/100808f9a9c4d653810aa0a0c0f748baf056d1', redis_key).items():
     #     print key, value
     print 'test case 2'
-    for key, value in extract_topic_info('http://weibo.com/p/1008080db448b798b47da2c05305e35b01a4f2', redis_key).items():
+    for key, value in extract_topic_info('http://weibo.com/p/1008087eadf177091b5221806c23b7cb64f451', redis_key).items():
         print key, value
-    print 'test case 3'
-    for key, value in extract_topic_info('http://weibo.com/p/100808fe0981c53b23fbf9d839602cf9ba1a44', redis_key).items():
-        print key, value
+    # print 'test case 3'
+    # for key, value in extract_topic_info('http://weibo.com/p/100808fe0981c53b23fbf9d839602cf9ba1a44', redis_key).items():
+    #    print key, value
 
 
-# test_extract_topic_info()
+test_extract_topic_info()
