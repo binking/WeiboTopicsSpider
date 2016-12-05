@@ -132,6 +132,3 @@ def test_extract_topic_info():
     # print 'test case 3'
     # for key, value in extract_topic_info('http://weibo.com/p/100808fe0981c53b23fbf9d839602cf9ba1a44', redis_key).items():
     #    print key, value
-
-
-test_extract_topic_info()
