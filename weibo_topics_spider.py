@@ -43,17 +43,12 @@ def extract_topic_info(topic_uri, redis_key):
     # aby_proxy = gen_abuyun_proxy()
     r = requests.get(topic_uri, timeout=10, proxies={}, cookies=cookie)
     parser = bs(r.text, 'html.parser')
-    if len(r.text) < 10000 or parser.find('div', {'class': 'W_error_bg'}):
+    if len(r.text) < 10000 or parser.find('div', {'class': 'W_error_bg'}):  # <title>404错误</title>
         print >>open('./html/access_error_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), parser
         r2.srem(redis_key, rand_account)
         raise ConnectionError('Hey, boy, account %s was freezed' % rand_account)
-    # exclude micro discussion
-    # if '访谈问答' in r.text.encode('utf-8'):
-    #     print 'Ignore Micro Discussion: %s' % topic_uri
-    #     return info_dict
-    # -- parse description of topic
     meta_tag = parser.find('meta', {'name': 'description'})
-    if meta_tag:
+    if meta_tag:  # guide is optional
         info_dict['guide'] = meta_tag.get('content', '').encode('utf8').strip()
 
     image_url_parser = None; stat_nums_parser = None; about_parser = None
@@ -91,31 +86,24 @@ def extract_topic_info(topic_uri, redis_key):
             info_dict['read_num'] = counters[0][:-2]
             info_dict['dis_num'] = counters[1][:-2]
             info_dict['fans_num'] = counters[2][:-2]
-            info_dict['read_num_dec'] = chin_num2dec(info_dict['read_num'])
-    # extract guide article
-    # if guide_parser:
-    #     div_tag = guide_parser.find('div', {'class': 'topic_PCD_guide'})
-    #     if div_tag and div_tag.find('p', {'class': re.compile(r'W_f')}):
-            
+            info_dict['read_num_dec'] = chin_num2dec(info_dict['read_num'])        
     # extract type, label, and region of topic
     # import ipdb; ipdb.set_trace()
     if about_parser:
         for li_tag in about_parser.find_all('li'):
             title_tag = li_tag.find(attrs={'class': re.compile('pt_title')})
-            detail_tag = li_tag.find(attrs={'class': re.compile('pt_detail')})
+            detail_tag = li_tag.find(attrs={'class': re.compile('pt_detail')})  # pt_detail is optional
             title = title_tag.text.encode('utf8')
             if not detail_tag:
-                print >>open('Other_unknown_abount_parser_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), about_parser
-                continue
-            detail = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
+                detail = ''
+            else:
+                detail = ' '.join([a_tag.text.strip() for a_tag in detail_tag.find_all('a')])
             if '分类' in title:  # http://weibo.com/3238362920/about
                 info_dict['type'] = detail
             elif '地区' in title:
                 info_dict['region'] = detail
             elif '标签' in title:
                 info_dict['label'] = detail
-            else:
-                print >>open('Other_unknown_attr_%s.html' % dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'w'), about_parser
     if info_dict['title'] and info_dict['image_url']:  # can't be none
         info_dict['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
         info_dict['topic_url'] = topic_uri
@@ -129,6 +117,15 @@ def test_extract_topic_info():
     print 'test case 2'
     for key, value in extract_topic_info('http://weibo.com/p/1008087eadf177091b5221806c23b7cb64f451', redis_key).items():
         print key, value
-    # print 'test case 3'
-    # for key, value in extract_topic_info('http://weibo.com/p/100808fe0981c53b23fbf9d839602cf9ba1a44', redis_key).items():
-    #    print key, value
+
+"""
+extract guide article
+if guide_parser:
+     div_tag = guide_parser.find('div', {'class': 'topic_PCD_guide'})
+     if div_tag and div_tag.find('p', {'class': re.compile(r'W_f')}):
+# exclude micro discussion
+# if '访谈问答' in r.text.encode('utf-8'):
+#     print 'Ignore Micro Discussion: %s' % topic_uri
+#     return info_dict
+# -- parse description of topic
+"""
