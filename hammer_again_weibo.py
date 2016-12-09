@@ -11,10 +11,14 @@ from config.weibo_config import (
     ACTIVATED_COOKIE,
     REDIS_SETTING,
 )
-from utils.weibo_utils import gen_abuyun_proxy
+from utils.weibo_utils import gen_abuyun_proxy, change_tunnel, retry
+exc_list = (IndexError, ProxyError, Timeout, ConnectTimeout, ConnectionError, Exception)
 
+
+@retry(exc_list, tries=3, delay=3, backoff=2)
 def gen_cookie(account, pwd, proxy={}):
     """ 获取一个账号的Cookie """
+    cookie = ""
     loginURL = "https://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.15)"
     username = base64.b64encode(account.encode("utf-8")).decode("utf-8")
     postData = {
@@ -44,14 +48,12 @@ def gen_cookie(account, pwd, proxy={}):
     if info["retcode"] == "0":
         # logger.warning("Get Cookie Success!( Account:%s )" % account)
         print "Get Cookie Success!( Account:%s )" % account
-        cookie = session.cookies.get_dict()
-        # import ipdb; ipdb.set_trace()
-        return json.dumps(cookie)
+        cookie = json.dumps(session.cookies.get_dict())
     else:
         # logger.warning("Failed!( Reason:%s )" % info["reason"])
         # import ipdb; ipdb.set_trace()
         print "Failed!( Reason:%s )" % info["reason"].encode('utf8')
-        return ""
+    return cookie
 
 
 def init_cookie(rconn):
@@ -67,6 +69,7 @@ def init_cookie(rconn):
             r.hset(ACTIVATED_COOKIE, auth, cookie)
             time.sleep(2)
         else:
+            change_tunnel()
             failed_count += 1
         if failed_count >= 5:
             print 'Failed in login too many times.'

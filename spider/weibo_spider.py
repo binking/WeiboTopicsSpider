@@ -80,7 +80,8 @@ class WeiboSpider(Spider):
                 return True
         # time.sleep(2)
         return False
-
+        
+    @retry(exc_list, tries=3, delay=3, backoff=2)
     def gen_cookie(self, rconn):
         """ 
         获取一个账号的Cookie
