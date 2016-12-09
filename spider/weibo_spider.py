@@ -60,8 +60,9 @@ class WeiboSpider(Spider):
         }
 
     def check_abnormal_status(self):
-        # import ipdb; ipdb.set_trace()
-        if 0<len(self.page) < 10000:  # Let IndexError disappear
+        if len(self.page) == 0:
+            pass
+        elif len(self.page) < 10000:  # Let IndexError disappear
             print >>open('./html/block_error_%s.html' % self.account, 'w'), self.page
             self.is_abnormal = True
         elif self.page.find('<title>404错误</title>') > 0:  # <title>404错误</title>
