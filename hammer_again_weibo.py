@@ -59,7 +59,7 @@ def init_cookie(rconn):
     print "Length: ", len(WEIBO_ACCOUNT_LIST)
     for account in WEIBO_ACCOUNT_LIST:
         auth = '%s--%s' % (account, WEIBO_ACCOUNT_PASSWD)
-        if auth in rcon.hkeys(ACTIVATED_COOKIE):
+        if auth in rconn.hkeys(ACTIVATED_COOKIE):
             continue
         aby_proxy = gen_abuyun_proxy()
         cookie = gen_cookie(account, WEIBO_ACCOUNT_PASSWD, aby_proxy)
