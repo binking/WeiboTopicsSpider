@@ -15,7 +15,7 @@ class WeiboTopcSpider(WeiboSpider):
         self.topic_info = {}
 
     @catch_parse_error((Exception, ))
-    def parse_topic_info(topic_uri):
+    def parse_topic_info(self):
         """
         Given topic url, parse HTML code and get topic info
         """
@@ -29,14 +29,17 @@ class WeiboTopcSpider(WeiboSpider):
         image_url_parser = None; stat_nums_parser = None; about_parser = None
         for script in parser.find_all('script'):
             script_text = script.text.encode('utf8')
-            if 'pf_head S_bg2 S_line1' in script_text:
+            if 'pf_head S_bg2 S_line1' in script_text and "\"html\"" in script_text:
+                # import ipdb; ipdb.set_trace()
                 image_url_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-            elif 'PCD_counter' in script_text:
+            elif 'PCD_counter' in script_text and "\"html\"" in script_text:
+                # <script>FM.view({"ns":"","domid":"Pl_Core_T8CustomTriColumn__12","css":["style/css/module/pagecard/PCD_counter.css?version=321967be9a0c2834"]})</script>
                 stat_nums_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-            elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text:
+            elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text and "\"html\"" in script_text:
                 # no about: http://weibo.com/p/100808bcd9f210dc631a1eec4a9e1bef001f59
                 about_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
         # extract image url
+        # import ipdb; ipdb.set_trace()
         if image_url_parser:
             div_tag = image_url_parser.find('div', {'class': 'pf_username clearfix'})
             if div_tag and div_tag.find('h1'):
@@ -53,7 +56,7 @@ class WeiboTopcSpider(WeiboSpider):
                 self.topic_info['read_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[0].text.strip()
                 self.topic_info['dis_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[1].text.strip()
                 self.topic_info['fans_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[2].text.strip()
-                self.topic_info['read_num_dec'] = chin_num2dec(info_dict['read_num'])
+                self.topic_info['read_num_dec'] = chin_num2dec(self.topic_info['read_num'])
             else:
                 counters = div_tag.find('td').text.split()
                 self.topic_info['read_num'] = counters[0][:-2]
@@ -61,7 +64,7 @@ class WeiboTopcSpider(WeiboSpider):
                 self.topic_info['fans_num'] = counters[2][:-2]
                 self.topic_info['read_num_dec'] = chin_num2dec(self.topic_info['read_num'])        
         # extract type, label, and region of topic
-        # import ipdb; ipdb.set_trace()
+        # 
         if about_parser:
             for li_tag in about_parser.find_all('li'):
                 title_tag = li_tag.find(attrs={'class': re.compile('pt_title')})
@@ -77,9 +80,11 @@ class WeiboTopcSpider(WeiboSpider):
                     self.topic_info['region'] = detail
                 elif '标签' in title:
                     self.topic_info['label'] = detail
-        if self.topic_info['title'] and self.topic_info['image_url']:  # can't be none
+        if self.topic_info.get('title') and self.topic_info.get('image_url'):  # can't be none
             self.topic_info['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
-            self.topic_info['topic_url'] = topic_uri
+            self.topic_info['topic_url'] = self.url
+        for k,v in self.topic_info.items():
+            print k, v
         return self.topic_info
 
 def test_extract_topic_info():

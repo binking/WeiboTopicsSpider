@@ -14,6 +14,7 @@ from config.weibo_config import (
     REDIS_SETTING,
 )
 from utils.weibo_utils import (
+    gen_cookie,
     create_processes,
     pick_rand_ele_from_list
 )
@@ -37,9 +38,9 @@ def topic_info_generator(jobs, results, rconn):
         all_account = rconn.hkeys(ACTIVATED_COOKIE)
         if not all_account:  # no any weibo account
             raise Exception('All of your accounts were Freezed')
-        auth = pick_rand_ele_from_list(all_account)
-        account, pwd = auth.split('--')
-        spider = WeiboTopcSpider(topic_url, account, pwd)
+        account = pick_rand_ele_from_list(WEIBO_ACCOUNT_LIST)
+        # account, pwd = auth.split('--')
+        spider = WeiboTopcSpider(topic_url, account, WEIBO_ACCOUNT_PASSWD)
         spider.read_cookie(rconn)
         spider.add_request_header()
         spider.gen_html_source()
@@ -119,16 +120,24 @@ def run_all_worker(date_start, date_end, days_inter):
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Interrupted by you and quit in force, but save the results"
 
 
-def test():
-    test_uris = ['http://weibo.com/p/1008085c488e8064b0c99acbb919d7870ccddd']
-    for i, url in enumerate(test_uris):
-        print i, url
-        topic_info = extract_topic_info(url)
-        if topic_info and len(topic_info) > 2:
-            update_topics_into_db(topic_info)
-        if i > 1:
-            break
-
+def test(date_start, date_end, days_inter):
+    rconn = redis.StrictRedis(**REDIS_SETTING)
+    dao = WeiboTopicWriter(OUTER_MYSQL)
+    for topic_url in dao.read_topic_url_from_db(date_start, date_end, days_inter):
+        all_account = rconn.hkeys(ACTIVATED_COOKIE)
+        if not all_account:  # no any weibo account
+            raise Exception('All of your accounts were Freezed')
+        account, pwd = pick_rand_ele_from_list(all_account).split("--")
+        spider = WeiboTopcSpider(topic_url, account, pwd)
+        spider.use_abuyun_proxy()
+        spider.read_cookie(rconn)
+        spider.add_request_header()
+        spider.gen_html_source()
+        if spider.check_abnormal_status():
+            print 'Oh baby baby, your account was blocked. '
+            spider.remove_cookie(rconn)
+        else:
+            spider.parse_topic_info()
 
 if __name__=="__main__":
     print "\n" + "%s Began Update Weibo Topics" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
@@ -139,7 +148,8 @@ if __name__=="__main__":
     parser.add_argument('--inter', dest='interval', type=int, help='default from 7 days ago')
     args = parser.parse_args()
     if args.start or args.end or args.interval:
-        run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
+        # run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
+        test(date_start=args.start, date_end=args.end, days_inter=args.interval)
     else:
         parser.print_usage()
     # test_parse_baidu_results()
