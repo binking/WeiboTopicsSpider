@@ -61,7 +61,7 @@ class WeiboSpider(Spider):
 
     def check_abnormal_status(self):
         import ipdb; ipdb.set_trace()
-        if len(self.page) < 10000:  # Let IndexError disappear
+        if 0<len(self.page) < 10000:  # Let IndexError disappear
             print >>open('./html/block_error_%s.html' % self.account, 'w'), self.page
             self.is_abnormal = True
         elif self.page.find('<title>404错误</title>') > 0:  # <title>404错误</title>
@@ -72,11 +72,9 @@ class WeiboSpider(Spider):
     def read_cookie(self, rconn):
         auth = '%s--%s' % (self.account, self.password)
         if auth in rconn.hkeys(ACTIVATED_COOKIE):
-            print 'Existed'
             self.cookie = json.loads(rconn.hget(ACTIVATED_COOKIE, auth))
             return True
         else:
-            print "New"
             status = self.gen_cookie(rconn)
             if status:
                 return True
@@ -139,7 +137,7 @@ class WeiboSpider(Spider):
         print "The num of the cookies left is %s" % cookie_num
 
     # @catch_network_error(exc_list)
-    @retry(exc_list, tries=3, delay=2, backoff=2)
+    @retry(exc_list, tries=3, delay=3, backoff=2)
     def gen_html_source(self):
         """
         Separate get page and parse page

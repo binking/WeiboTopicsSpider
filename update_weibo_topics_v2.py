@@ -6,6 +6,7 @@ import argparse
 import traceback
 from datetime import datetime as dt
 import multiprocessing as mp
+from requests.exceptions import ConnectionError
 from config.weibo_config import (
     OUTER_MYSQL,
     WEIBO_ACCOUNT_LIST, 
@@ -43,12 +44,18 @@ def topic_info_generator(jobs, results, rconn):
         spider.use_abuyun_proxy()
         spider.add_request_header()
         spider.read_cookie(rconn)
-        spider.gen_html_source()
-        info = spider.parse_topic_info()
+        try:
+            spider.gen_html_source()
+        except ConnectionError as e:
+            print str(e)
+            jobs.put(topic_url)
+        if spider.check_abnormal_status():
+            print 'Oh baby baby, your account was blocked. '
+            spider.remove_cookie(rconn)
+        else:
+            info = spider.parse_topic_info()
         if info and len(info) > 2:  # except access_time and url
             results.put(info)
-        else:
-            jobs.put(topic_url)
         jobs.task_done()
 
 
@@ -121,12 +128,15 @@ def test(date_start, date_end, days_inter):
         spider.use_abuyun_proxy()
         spider.read_cookie(rconn)
         spider.add_request_header()
-        spider.gen_html_source()
+        try:
+            spider.gen_html_source()
+        except ConnectionError as e:
+            pass
         if spider.check_abnormal_status():
             print 'Oh baby baby, your account was blocked. '
             spider.remove_cookie(rconn)
         else:
-            spider.parse_topic_info()
+            info = spider.parse_topic_info()
 
 if __name__=="__main__":
     print "\n" + "%s Began Update Weibo Topics" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
