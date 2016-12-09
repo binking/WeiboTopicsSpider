@@ -56,7 +56,8 @@ def gen_cookie(account, pwd, proxy={}):
 
 def init_cookie(rconn):
     failed_count = 0
-    for account in WEIBO_ACCOUNT_LIST[]:
+    print "Length: ", len(WEIBO_ACCOUNT_LIST)
+    for account in WEIBO_ACCOUNT_LIST:
         auth = '%s--%s' % (account, WEIBO_ACCOUNT_PASSWD)
         aby_proxy = gen_abuyun_proxy()
         cookie = gen_cookie(account, WEIBO_ACCOUNT_PASSWD, aby_proxy)
