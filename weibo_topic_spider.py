@@ -40,6 +40,8 @@ class WeiboTopcSpider(WeiboSpider):
             elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text and "\"html\"" in script_text:
                 # no about: http://weibo.com/p/100808bcd9f210dc631a1eec4a9e1bef001f59
                 about_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
+        if stat_nums_parser:
+            print 'It\'s a pity not to stat.. Dammit'
         # extract image url
         # import ipdb; ipdb.set_trace()
         if image_url_parser:
@@ -85,8 +87,8 @@ class WeiboTopcSpider(WeiboSpider):
         if self.topic_info.get('title') and self.topic_info.get('image_url'):  # can't be none
             self.topic_info['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
             self.topic_info['topic_url'] = self.url
-        for k,v in self.topic_info.items():
-            print k, v
+        # for k,v in self.topic_info.items():
+        #     print k, v
         return self.topic_info
 
 def test_extract_topic_info():

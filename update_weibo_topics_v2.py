@@ -39,7 +39,7 @@ def topic_info_generator(jobs, results, rconn):
         if not all_account:  # no any weibo account
             print 'All of your accounts were Freezed'
             break
-        account = pick_rand_ele_from_list(all_account)
+        auth = pick_rand_ele_from_list(all_account)
         account, pwd = auth.split('--')
         spider = WeiboTopcSpider(topic_url, account, pwd)
         spider.use_abuyun_proxy()
@@ -148,8 +148,8 @@ if __name__=="__main__":
     parser.add_argument('--inter', dest='interval', type=int, help='default from 7 days ago')
     args = parser.parse_args()
     if args.start or args.end or args.interval:
-        # run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
-        test(date_start=args.start, date_end=args.end, days_inter=args.interval)
+        run_all_worker(date_start=args.start, date_end=args.end, days_inter=args.interval)
+        # test(date_start=args.start, date_end=args.end, days_inter=args.interval)
     else:
         parser.print_usage()
     # test_parse_baidu_results()

@@ -52,15 +52,15 @@ class WeiboSpider(Spider):
             'Connection': 'keep-alive',
             'Cache-Control': 'max-age=0',
             'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Referer': 'http://weibo.com/sorry?pagenotfound&',
+            # 'Referer': 'http://weibo.com/sorry?pagenotfound&',
             'Accept-Encoding': 'gzip, deflate, sdch',
-            'Accept-Language': 'en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4',
+            'Accept-Language': 'zh-CN,zh;q=0.8',
         }
 
     def check_abnormal_status(self):
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         if 0<len(self.page) < 10000:  # Let IndexError disappear
             print >>open('./html/block_error_%s.html' % self.account, 'w'), self.page
             self.is_abnormal = True
@@ -80,7 +80,7 @@ class WeiboSpider(Spider):
                 return True
         # time.sleep(2)
         return False
-        
+
     @retry(exc_list, tries=3, delay=3, backoff=2)
     def gen_cookie(self, rconn):
         """ 

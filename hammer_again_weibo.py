@@ -12,7 +12,7 @@ from config.weibo_config import (
     REDIS_SETTING,
 )
 from utils.weibo_utils import gen_abuyun_proxy, change_tunnel, retry
-exc_list = (IndexError, ProxyError, Timeout, ConnectTimeout, ConnectionError, Exception)
+exc_list = (Exception)
 
 
 @retry(exc_list, tries=3, delay=3, backoff=2)
