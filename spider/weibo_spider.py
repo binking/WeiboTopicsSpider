@@ -60,7 +60,7 @@ class WeiboSpider(Spider):
         }
 
     def check_abnormal_status(self):
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         if len(self.page) < 10000:  # Let IndexError disappear
             print >>open('./html/block_error_%s.html' % self.account, 'w'), self.page
             self.is_abnormal = True
@@ -154,7 +154,7 @@ class WeiboSpider(Spider):
         if len(r.text) < 1:
             raise ConnectionError('Access nothing back')
         elif 16000<len(r.text)<18000:
-            raise ConnectionError('Ghost Error, incorrect source code but bot freezed')
+            raise ConnectionError('Ghost Error, incorrect source code but not freezed')
         if r.status_code == 200:
             self.page = r.text.encode('utf8')
         return True

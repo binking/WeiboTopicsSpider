@@ -14,7 +14,6 @@ from config.weibo_config import (
     REDIS_SETTING,
 )
 from utils.weibo_utils import (
-    gen_cookie,
     create_processes,
     pick_rand_ele_from_list
 )
@@ -39,10 +38,11 @@ def topic_info_generator(jobs, results, rconn):
         if not all_account:  # no any weibo account
             raise Exception('All of your accounts were Freezed')
         account = pick_rand_ele_from_list(all_account)
-        # account, pwd = auth.split('--')
-        spider = WeiboTopcSpider(topic_url, account, WEIBO_ACCOUNT_PASSWD)
-        spider.read_cookie(rconn)
+        account, pwd = auth.split('--')
+        spider = WeiboTopcSpider(topic_url, account, pwd)
+        spider.use_abuyun_proxy()
         spider.add_request_header()
+        spider.read_cookie(rconn)
         spider.gen_html_source()
         info = spider.parse_topic_info()
         if info and len(info) > 2:  # except access_time and url
@@ -78,15 +78,6 @@ def add_jobs(target, start_date, end_date, interval):
         #    break
     return todo
 
-
-def init_cookie(rconn):
-    for account in WEIBO_ACCOUNT_LIST:
-        auth = '%s--%s' % (account, WEIBO_ACCOUNT_PASSWD)
-        cookie = gen_cookie(account, WEIBO_ACCOUNT_PASSWD)
-        if cookie:
-            r.hset(ACTIVATED_COOKIE, auth, cookie)
-            time.sleep(2)
-
 def run_all_worker(date_start, date_end, days_inter):
     try:
         # load weibo account into redis cache
@@ -100,10 +91,8 @@ def run_all_worker(date_start, date_end, days_inter):
 
         cp = mp.current_process()
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
-        num_of_topics = add_jobs(target=jobs, 
-            start_date=date_start, 
-            end_date=date_end, 
-            interval=days_inter
+        num_of_topics = add_jobs(target=jobs, start_date=date_start, 
+            end_date=date_end, interval=days_inter
         )
         print "<"*10, 
         print "There are %d topics to process" % (num_of_topics), 
