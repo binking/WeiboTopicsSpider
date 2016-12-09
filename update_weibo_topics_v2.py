@@ -37,7 +37,8 @@ def topic_info_generator(jobs, results, rconn):
         topic_url = jobs.get()
         all_account = rconn.hkeys(ACTIVATED_COOKIE)
         if not all_account:  # no any weibo account
-            raise Exception('All of your accounts were Freezed')
+            print 'All of your accounts were Freezed'
+            break
         account = pick_rand_ele_from_list(all_account)
         account, pwd = auth.split('--')
         spider = WeiboTopcSpider(topic_url, account, pwd)
@@ -93,8 +94,8 @@ def run_all_worker(date_start, date_end, days_inter):
         # Producer is on !!!
         jobs = mp.JoinableQueue()
         results = mp.JoinableQueue()
-        create_processes(topic_info_generator, (jobs, results, r), 2)
-        create_processes(topic_db_writer, (results,), 1)
+        create_processes(topic_info_generator, (jobs, results, r), 4)
+        create_processes(topic_db_writer, (results,), 8)
 
         cp = mp.current_process()
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
