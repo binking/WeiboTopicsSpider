@@ -24,8 +24,7 @@ class WeiboTopicWriter(DBAccesor):
         cursor.execute(insert_trend_sql)
         cursor.execute(update_info_sql)
         print 'Writed topic and trend DONE !!!'
-        # conn.commit(); 
-        cursor.close();  conn.close()
+        conn.commit(); cursor.close();  conn.close()
 
 
     @database_error_hunter

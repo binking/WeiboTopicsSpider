@@ -116,8 +116,8 @@ def add_jobs(cache):
         try:
             all_account = cache.hkeys(MANUAL_COOKIES)
             cache.rpush(TOPIC_URL_QUEUE, job)
-            if todo > 2:
-                break
+            # if todo > 2:
+            #     break
         except Exception as e:
             print e
     return todo
@@ -125,11 +125,11 @@ def add_jobs(cache):
 
 def run_all_worker():
     job_cache = redis.StrictRedis(**USED_REDIS)  # list
-    result_cache = redis.StrictRedis(**USED_REDIS)  # list
-    job_pool = mp.Pool(processes=1,
-        initializer=generate_info, initargs=(job_cache, result_cache))
-    result_pool = mp.Pool(processes=2, 
-        initializer=write_data, initargs=(result_cache, ))
+    # result_cache = redis.StrictRedis(**USED_REDIS)  # list
+    job_pool = mp.Pool(processes=4,
+        initializer=generate_info, initargs=(job_cache, job_cache))
+    result_pool = mp.Pool(processes=8, 
+        initializer=write_data, initargs=(job_cache, ))
 
     cp = mp.current_process()
     print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
@@ -140,14 +140,14 @@ def run_all_worker():
         job_pool.join()
         result_pool.join()
         print "+"*10, "jobs' length is ", job_cache.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
-        print "+"*10, "results' length is ", result_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "results' length is ", job_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
     except Exception as e:
         traceback.print_exc()
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Exception raise in runn all Work"
     except KeyboardInterrupt:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Interrupted by you and quit in force, but save the results"
         print "+"*10, "jobs' length is ", job_cache.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
-        print "+"*10, "results' length is ", result_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "results' length is ", job_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
 
 
 if __name__=="__main__":
