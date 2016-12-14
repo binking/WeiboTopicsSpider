@@ -126,18 +126,18 @@ def add_jobs(cache):
 def run_all_worker():
     job_cache = redis.StrictRedis(**USED_REDIS)  # list
     # result_cache = redis.StrictRedis(**USED_REDIS)  # list
+    if not job_cache.llen(TOPIC_URL_QUEUE):
+        create_processes(add_jobs, (job_cache, ), 1)
+    else:
+        print "Redis has %d records in cache" % job_cache.llen(TOPIC_URL_QUEUE)
     job_pool = mp.Pool(processes=4,
         initializer=generate_info, initargs=(job_cache, ))
     result_pool = mp.Pool(processes=8, 
         initializer=write_data, initargs=(job_cache, ))
 
-    if not job_cache.llen(TOPIC_URL_QUEUE):
-        cp = mp.current_process()
-    else:
-        print "Redis has %d records in cache" % job_cache.llen(TOPIC_URL_QUEUE)
+    cp = mp.current_process()
     print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
     try:
-        create_processes(add_jobs, (job_cache, ), 1)
         job_pool.close()
         result_pool.close()
         job_pool.join()
