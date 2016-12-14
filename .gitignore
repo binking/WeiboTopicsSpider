@@ -3,12 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# protect config
-config/
+# config
+*_config.py
+config.py
+*config*.py
+*/*config*.py
 
-*/config/
-# ignore html
-html/
 # C extensions
 *.so
 

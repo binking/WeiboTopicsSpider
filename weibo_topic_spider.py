@@ -2,16 +2,12 @@
 import re
 import json
 import requests
-from datetime import datetime as dt
 from bs4 import BeautifulSoup as bs
-from utils import (
-    chin_num2dec, 
-    catch_parse_error
-)
-from spider.weibo_spider import WeiboSpider
+from datetime import datetime as dt
+from template.weibo_spider import WeiboSpider
+from template.weibo_utils import chin_num2dec, catch_parse_error
 
-
-class WeiboTopcSpider(WeiboSpider):
+class WeiboTopicSpider(WeiboSpider):
     def __init__(self, start_url, account, password, timeout=10, delay=1, proxy={}):
         WeiboSpider.__init__(self, start_url, account, password, timeout=10, delay=1, proxy={})
         self.topic_info = {}
