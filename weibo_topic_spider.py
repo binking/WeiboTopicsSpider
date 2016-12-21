@@ -18,7 +18,7 @@ class WeiboTopicSpider(WeiboSpider):
         Given topic url, parse HTML code and get topic info
         """
         res = {}
-        if not self.page:
+        if len(self.page) < 20000:
             return res
         parser = bs(self.page, 'html.parser')
         meta_tag = parser.find('meta', {'name': 'description'})
