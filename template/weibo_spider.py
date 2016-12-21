@@ -314,7 +314,7 @@ class WeiboSpider(Spider):
         # import ipdb; ipdb.set_trace()
         # home_response = s.get('http://m.weibo.com/', cookies=self.cookie, proxies=self.proxy)
         info_response = requests.get(self.url, timeout=self.timeout, headers=self.headers,
-            cookies=self.cookie, proxies=self.proxy)
+            cookies=self.cookie, proxies=self.proxy, allow_redirects=True)
         text = info_response.text.encode('utf8')
         now_time = dt.now().strftime("%Y-%m-%d %H:%M:%S")
         if info_response.status_code == 429:
