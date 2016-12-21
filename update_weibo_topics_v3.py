@@ -58,7 +58,7 @@ def generate_info(cache):
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
-            spider.use_cookie_from_curl(cache1.hget(MANUAL_COOKIES,account))
+            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES,account))
             # spider.use_cookie_from_curl(TEST_CURL_SER)
             spider.gen_html_source()
             info = spider.parse_topic_info()
