@@ -55,15 +55,15 @@ def generate_info(cache1, cache2):
             account = pick_rand_ele_from_list(all_account)
             # operate spider
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
-            # spider.use_abuyun_proxy()
+            spider.use_abuyun_proxy()
             spider.add_request_header()
-            spider.use_cookie_from_curl(WEIBO_MANUAL_COOKIES[account])
+            spider.use_cookie_from_curl(cache1.hget(MANUAL_COOKIES,account))
             # spider.use_cookie_from_curl(TEST_CURL_SER)
             spider.gen_html_source()
             info = spider.parse_topic_info()
             if info:
                 if not(info.get('read_num') and info.get('dis_num') and info.get('fans_num')):
-                    print "Invalid data for uri: %s" % info['topic_url']
+                    print "Invalid data(No three numbers) for uri: %s" % info['topic_url']
                     continue
                 trend_sql = INSERT_TOPIC_TREND_SQL.format(
                     url=info['topic_url'], date=info['access_time'],
@@ -116,8 +116,8 @@ def add_jobs(cache):
         try:
             all_account = cache.hkeys(MANUAL_COOKIES)
             cache.rpush(TOPIC_URL_QUEUE, job)
-            # if todo > 2:
-            #     break
+            if todo > 2:
+                break
         except Exception as e:
             print e
     return todo
