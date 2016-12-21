@@ -317,7 +317,13 @@ class WeiboSpider(Spider):
             cookies=self.cookie, proxies=self.proxy, allow_redirects=True)
         text = info_response.text.encode('utf8')
         now_time = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-        if info_response.status_code == 429:
+        if info_response.url == 'http://weibo.com/sorry?pagenotfound&id_error':
+            print "4"*10, '0'*10, "4"*10
+        elif len(info_response.history) > 1:
+            for redirect in info_response.history:
+                if redirect.status_code == 302:
+                    print "3"*10, "0"*10, "2"*10
+        elif info_response.status_code == 429:
             raise ConnectionError("Hey, guy, too many requests")
         elif len(text) == 0:
             print 'Access nothing back'
