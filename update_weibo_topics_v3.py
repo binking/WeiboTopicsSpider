@@ -39,6 +39,7 @@ else:
 
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
 
+
 def generate_info(cache):
     """
     Producer for users(cache) and follows(cache), Consummer for topics
@@ -54,7 +55,6 @@ def generate_info(cache):
                 raise Exception('All of your accounts were Freezed')
             account = pick_rand_ele_from_list(all_account)
             # operate spider
-            print job
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
@@ -116,8 +116,6 @@ def add_jobs(cache):
         todo += 1
         try:
             cache.rpush(TOPIC_URL_QUEUE, job)
-            if todo > 2:
-                break
         except Exception as e:
             print e
     return todo
@@ -130,9 +128,9 @@ def run_all_worker():
         create_processes(add_jobs, (job_cache, ), 1)
     else:
         print "Redis has %d records in cache" % job_cache.llen(TOPIC_URL_QUEUE)
-    job_pool = mp.Pool(processes=4,
+    job_pool = mp.Pool(processes=8,
         initializer=generate_info, initargs=(job_cache, ))
-    result_pool = mp.Pool(processes=8, 
+    result_pool = mp.Pool(processes=4, 
         initializer=write_data, initargs=(job_cache, ))
 
     cp = mp.current_process()
@@ -157,5 +155,4 @@ if __name__=="__main__":
     print "\n\n" + "%s Began Scraped Weibo Topics Details" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
     start = time.time()
     run_all_worker()
-    # single_process()
     print "*"*10, "Totally Scraped Weibo Topics Details Time Consumed : %d seconds" % (time.time() - start), "*"*10
