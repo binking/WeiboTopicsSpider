@@ -57,7 +57,8 @@ def single_process():
         spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES,account))
         # spider.use_cookie_from_curl(TEST_CURL_SER)
         spider.gen_html_source()
-        print spider.parse_topic_info()
+        for k, v in spider.parse_topic_info().items():
+            print k, ':', v
 
 
 if __name__=="__main__":
