@@ -39,17 +39,17 @@ else:
 
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
 
-def generate_info(cache1, cache2):
+def generate_info(cache):
     """
-    Producer for users(cache1) and follows(cache2), Consummer for topics
+    Producer for users(cache) and follows(cache), Consummer for topics
     """
     cp = mp.current_process()
     while True:
         sql = ''
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Follow Process pid is %d" % (cp.pid)
-        job = cache1.blpop(TOPIC_URL_QUEUE, 0)[1]   # blpop 获取队列数据
+        job = cache.blpop(TOPIC_URL_QUEUE, 0)[1]   # blpop 获取队列数据
         try:
-            all_account = cache1.hkeys(MANUAL_COOKIES)
+            all_account = cache.hkeys(MANUAL_COOKIES)
             if not all_account:  # no any weibo account
                 raise Exception('All of your accounts were Freezed')
             account = pick_rand_ele_from_list(all_account)
@@ -81,9 +81,9 @@ def generate_info(cache1, cache2):
                     image=info['image_url']
                 )
                 # format sql and push them into result queue
-                cache2.rpush(TOPIC_INFO_QUEUE, '%s||%s' % (trend_sql, topic_sql))  # push ele to the tail
+                cache.rpush(TOPIC_INFO_QUEUE, '%s||%s' % (trend_sql, topic_sql))  # push ele to the tail
         except Exception as e:  # no matter what was raised, cannot let process died
-            cache1.rpush(TOPIC_URL_QUEUE, job) # put job back
+            cache.rpush(TOPIC_URL_QUEUE, job) # put job back
             print 'Raised in gen process', str(e)
         except KeyboardInterrupt as e:
             break
@@ -126,15 +126,18 @@ def add_jobs(cache):
 def run_all_worker():
     job_cache = redis.StrictRedis(**USED_REDIS)  # list
     # result_cache = redis.StrictRedis(**USED_REDIS)  # list
+    if not job_cache.llen(TOPIC_URL_QUEUE):
+        create_processes(add_jobs, (job_cache, ), 1)
+    else:
+        print "Redis has %d records in cache" % job_cache.llen(TOPIC_URL_QUEUE)
     job_pool = mp.Pool(processes=4,
-        initializer=generate_info, initargs=(job_cache, job_cache))
+        initializer=generate_info, initargs=(job_cache, ))
     result_pool = mp.Pool(processes=8, 
         initializer=write_data, initargs=(job_cache, ))
 
     cp = mp.current_process()
     print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
     try:
-        create_processes(add_jobs, (job_cache, ), 1)
         job_pool.close()
         result_pool.close()
         job_pool.join()
