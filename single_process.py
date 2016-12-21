@@ -51,7 +51,7 @@ def single_process():
         account = 'liekeoth27678@163.com'
         # operate spider
         print url
-        spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
+        spider = WeiboTopicSpider(url, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
         spider.use_abuyun_proxy()
         spider.add_request_header()
         spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES,account))

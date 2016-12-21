@@ -36,7 +36,7 @@ class WeiboTopicSpider(WeiboSpider):
             elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text and "\"html\"" in script_text:
                 # no about: http://weibo.com/p/100808bcd9f210dc631a1eec4a9e1bef001f59
                 about_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-        if stat_nums_parser:
+        if not stat_nums_parser:
             print 'It\'s a pity not to stat.. Dammit'
         # extract image url
         # import ipdb; ipdb.set_trace()
