@@ -54,6 +54,7 @@ def generate_info(cache1, cache2):
                 raise Exception('All of your accounts were Freezed')
             account = pick_rand_ele_from_list(all_account)
             # operate spider
+            print job
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
@@ -101,7 +102,7 @@ def write_data(cache):
             trend_sql, topic_sql = res.split('||')
             dao.update_topics_into_db(trend_sql, topic_sql)
         except Exception as e:  # won't let you died
-            print 'Raised in write process', str(e)
+            print "?"*10, 'Raised in write process', e
             cache.rpush(TOPIC_INFO_QUEUE, res)
         except KeyboardInterrupt as e:
             break
@@ -111,10 +112,9 @@ def add_jobs(cache):
     todo = 0
     dao = WeiboTopicWriter(USED_DATABASE)
     jobs = dao.read_topic_url_from_db()
-    for job in jobs:  # iterate
+    for job in jobs:
         todo += 1
         try:
-            all_account = cache.hkeys(MANUAL_COOKIES)
             cache.rpush(TOPIC_URL_QUEUE, job)
             if todo > 2:
                 break
