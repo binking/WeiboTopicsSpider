@@ -32,10 +32,15 @@ class WeiboTopicWriter(DBAccesor):
         """
         read the urls of topic from db. return iterator object
         """
+        # select_topic_sql = """
+        #     SELECT DISTINCT topicurl FROM topicanalysis.topic t 
+        #     WHERE 1 = 1 AND createdate > date_sub(NOW(), INTERVAL 30 DAY )
+        #     AND is_active = 1
+        # """
         select_topic_sql = """
-            SELECT DISTINCT topicurl FROM topicanalysis.topic t 
-            WHERE 1 = 1 AND createdate > date_sub(NOW(), INTERVAL 30 DAY )
-            AND is_active = 1
+            SELECT topic_url FROM topicinfo 
+            WHERE  theme LIKE '新浪微博_热门话题%' 
+            AND createdate > date_sub(NOW(), INTERVAL '7' DAY );
         """
         conn = self.connect_database()
         cursor = conn.cursor()
