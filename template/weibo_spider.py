@@ -310,32 +310,31 @@ class WeiboSpider(Spider):
         """
         if not self.cookie:
             return False
-        # s = requests.session()
-        # import ipdb; ipdb.set_trace()
-        # home_response = s.get('http://m.weibo.com/', cookies=self.cookie, proxies=self.proxy)
         info_response = requests.get(self.url, timeout=self.timeout, headers=self.headers,
             cookies=self.cookie, proxies=self.proxy, allow_redirects=True)
         text = info_response.text.encode('utf8')
         now_time = dt.now().strftime("%Y-%m-%d %H:%M:%S")
-        if info_response.url == 'http://weibo.com/sorry?pagenotfound&id_error':
-            print "4"*10, '0'*10, "4"*10
+        # catch 404 not found
+        if 'pagenotfound' in info_response.url:
+            # 'http://weibo.com/sorry?pagenotfound&id_error'
+            print "抱歉，你访问的页面地址有误，或者该页面不存在: %s" % self.url
+        elif 'code=20003' in info_response.url:
+            # http://weibo.com/sorry?userblock&is_viewer&code=20003
+            print '抱歉，您当前访问的帐号异常，暂时无法访问。(20003): %s' % self.url
         elif len(info_response.history) > 1:
             for redirect in info_response.history:
                 if redirect.status_code == 302:
-                    print "3"*10, "0"*10, "2"*10
+                    print "302 Temporarily Moved: ", self.url
         elif info_response.status_code == 429:
-            raise ConnectionError("Hey, guy, too many requests")
+            raise ConnectionError("429 Too many requests: " + self.url)
         elif len(text) == 0:
-            print 'Access nothing back'
+            print 'Access nothing back: ', self.url
         elif len(text) < 10000:  # Let IndexError disappear
-            print >>open('./html/block_error_%s_%s.html' % (self.account, now_time), 'w'), text
-            raise ConnectionError('Hey, boy, you were blocked..')
+            raise ConnectionError('Blocked: ' + self.url)
         elif text.find('<title>404错误</title>') > 0:  # <title>404错误</title>
-            print >>open('./html/freezed_account_%s_%s.html' % (self.account, now_time), 'w'), text
-            raise ConnectionError('The account were freezed')
+            raise ConnectionError('Freezed: ' + self.url)
         elif 16000<len(info_response.text)<18000:
-            print >>open('./html/ghost_error_%s_%s.html' % (self.account, now_time), 'w'), text
-            raise ConnectionError('Ghost Error, incorrect source code but not freezed')
+            raise ConnectionError('Short source code: ' + self.url)
         if info_response.status_code == 200:
             self.page = text
         time.sleep(self.delay)
