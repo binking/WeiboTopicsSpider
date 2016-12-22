@@ -99,9 +99,11 @@ def write_data(cache):
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Follow Process pid is %d" % (cp.pid)
         res = cache.blpop(TOPIC_INFO_QUEUE, 0)[1]
         try:
-            trend_sql, topic_sql = res.split('||')
-            dao.update_topics_into_db(trend_sql, topic_sql)
+            if res:
+                trend_sql, topic_sql = res.split('||')
+                dao.update_topics_into_db(trend_sql, topic_sql)
         except Exception as e:  # won't let you died
+            print res
             print "?"*10, 'Raised in write process', e
             cache.rpush(TOPIC_INFO_QUEUE, res)
         except KeyboardInterrupt as e:
