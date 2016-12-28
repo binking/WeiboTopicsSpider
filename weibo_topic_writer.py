@@ -52,7 +52,7 @@ class WeiboTopicWriter(DBAccesor):
             info['image_url'], info['topic_url']
         ))
         print 'Writed topic and trend DONE(%s)!!!' % info['topic_url']
-        # conn.commit(); cursor.close(); conn.close()
+        conn.commit(); cursor.close(); conn.close()
 
     @database_error_hunter
     def read_topic_url_from_db(self):  #, start_date, end_date, interval=7):
