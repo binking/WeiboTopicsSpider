@@ -65,7 +65,7 @@ def generate_info(cache):
                 if not(info.get('read_num') and info.get('dis_num') and info.get('fans_num')):
                     print "Invalid data(No three numbers) for uri: %s" % info['topic_url']
                     continue
-                cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(follow))  # push ele to the tail
+                cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Raised in gen process', str(e)
