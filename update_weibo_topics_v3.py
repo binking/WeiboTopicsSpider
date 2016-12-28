@@ -13,7 +13,7 @@ from requests.exceptions import ConnectionError
 from zc_spider.weibo_config import (
     WEIBO_MANUAL_COOKIES, MANUAL_COOKIES,
     WEIBO_ACCOUNT_PASSWD, 
-    TOPIC_URL_QUEUE, TOPIC_INFO_QUEUE,
+    TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
 )
