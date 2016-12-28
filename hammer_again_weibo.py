@@ -4,14 +4,14 @@ import time
 import redis
 import base64
 import requests
-from config.weibo_config import *
-from config.weibo_config import (
+from zc_spider.weibo_config import *
+from zc_spider.weibo_config import (
     WEIBO_ACCOUNT_LIST, 
     WEIBO_ACCOUNT_PASSWD, 
     ACTIVATED_COOKIE,
     REDIS_SETTING,
 )
-from utils.weibo_utils import gen_abuyun_proxy, change_tunnel, retry
+from zc_spider.weibo_utils import gen_abuyun_proxy, change_tunnel, retry
 exc_list = (Exception)
 
 

@@ -4,8 +4,8 @@ import json
 import requests
 from bs4 import BeautifulSoup as bs
 from datetime import datetime as dt
-from template.weibo_spider import WeiboSpider
-from template.weibo_utils import chin_num2dec, catch_parse_error
+from zc_spider.weibo_spider import WeiboSpider
+from zc_spider.weibo_utils import chin_num2dec, catch_parse_error
 
 class WeiboTopicSpider(WeiboSpider):
     def __init__(self, start_url, account, password, timeout=10, delay=1, proxy={}):
@@ -36,8 +36,6 @@ class WeiboTopicSpider(WeiboSpider):
             elif 'Pl_Core_T5MultiText__31' in script_text and '关于' in script_text and "\"html\"" in script_text:
                 # no about: http://weibo.com/p/100808bcd9f210dc631a1eec4a9e1bef001f59
                 about_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
-        if not stat_nums_parser:
-            print 'It\'s a pity not to stat.. Dammit'
         # extract image url
         # import ipdb; ipdb.set_trace()
         if image_url_parser:
@@ -64,7 +62,6 @@ class WeiboTopicSpider(WeiboSpider):
                 self.topic_info['fans_num'] = counters[2][:-2]
                 self.topic_info['read_num_dec'] = chin_num2dec(self.topic_info['read_num'])        
         # extract type, label, and region of topic
-        # 
         if about_parser:
             for li_tag in about_parser.find_all('li'):
                 title_tag = li_tag.find(attrs={'class': re.compile('pt_title')})
@@ -83,18 +80,7 @@ class WeiboTopicSpider(WeiboSpider):
         if self.topic_info.get('title') and self.topic_info.get('image_url'):  # can't be none
             self.topic_info['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
             self.topic_info['topic_url'] = self.url
-        # for k,v in self.topic_info.items():
-        #     print k, v
         return self.topic_info
-
-def test_extract_topic_info():
-    redis_key = 'weibo:account:mail'
-    # print 'test case 1'
-    # for key, value in extract_topic_info('http://weibo.com/p/100808f9a9c4d653810aa0a0c0f748baf056d1', redis_key).items():
-    #     print key, value
-    print 'test case 2'
-    for key, value in extract_topic_info('http://weibo.com/p/1008087eadf177091b5221806c23b7cb64f451', redis_key).items():
-        print key, value
 
 """
 extract guide article

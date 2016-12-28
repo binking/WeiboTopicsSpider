@@ -3,23 +3,21 @@ import os
 import sys
 import time
 import redis
+import random
+import pickle
 import argparse
 import traceback
 from datetime import datetime as dt
 import multiprocessing as mp
 from requests.exceptions import ConnectionError
-from template.weibo_config import (
+from zc_spider.weibo_config import (
     WEIBO_MANUAL_COOKIES, MANUAL_COOKIES,
     WEIBO_ACCOUNT_PASSWD, 
     TOPIC_URL_QUEUE, TOPIC_INFO_QUEUE,
-    INSERT_TOPIC_TREND_SQL, UPDATE_TOPIC_INFO_SQL,
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
 )
-from template.weibo_utils import (
-    create_processes,
-    pick_rand_ele_from_list
-)
+from zc_spider.weibo_utils import create_processes
 from weibo_topic_spider import WeiboTopicSpider
 from weibo_topic_writer import WeiboTopicWriter
 
@@ -53,35 +51,21 @@ def generate_info(cache):
             all_account = cache.hkeys(MANUAL_COOKIES)
             if not all_account:  # no any weibo account
                 raise Exception('All of your accounts were Freezed')
-            account = pick_rand_ele_from_list(all_account)
+            account = random.choice(all_account)
             # operate spider
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
             spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES,account))
-            # spider.use_cookie_from_curl(TEST_CURL_SER)
-            spider.gen_html_source()
+            status = spider.gen_html_source()
+            if status in [404, 20003]:
+                continue
             info = spider.parse_topic_info()
             if info:
                 if not(info.get('read_num') and info.get('dis_num') and info.get('fans_num')):
                     print "Invalid data(No three numbers) for uri: %s" % info['topic_url']
                     continue
-                trend_sql = INSERT_TOPIC_TREND_SQL.format(
-                    url=info['topic_url'], date=info['access_time'],
-                    read=info.get('read_num', ''), read_dec=info.get('read_num_dec', 0),
-                    disc=info.get('dis_num', ''), fans=info.get('fans_num', ''),
-                    image=info['image_url']
-                )
-                topic_sql = UPDATE_TOPIC_INFO_SQL.format(
-                    title=info['title'], intro=info['guide'],
-                    read=info.get('read_num', ''), read_dec=info.get('read_num_dec', 0),
-                    disc=info.get('dis_num', ''), fans=info.get('fans_num', ''),
-                    type=info.get('type', ''), region=info.get('region', ''),
-                    label=info.get('label', ''), url=info['topic_url'],
-                    image=info['image_url']
-                )
-                # format sql and push them into result queue
-                cache.rpush(TOPIC_INFO_QUEUE, '%s||%s' % (trend_sql, topic_sql))  # push ele to the tail
+                cache.rpush(TOPIC_INFO_QUEUE, pickle.dumps(follow))  # push ele to the tail
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_QUEUE, job) # put job back
             print 'Raised in gen process', str(e)
@@ -99,11 +83,7 @@ def write_data(cache):
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Follow Process pid is %d" % (cp.pid)
         res = cache.blpop(TOPIC_INFO_QUEUE, 0)[1]
         try:
-            if len(res.split('||')) == 2:
-                trend_sql, topic_sql = res.split('||')
-                dao.update_topics_into_db(trend_sql, topic_sql)
-            else:
-                 print res
+            dao.update_topics_into_db(pickle.loads(res))
         except Exception as e:  # won't let you died
             print "?"*10, 'Raised in write process', e
             cache.rpush(TOPIC_INFO_QUEUE, res)
@@ -114,27 +94,28 @@ def write_data(cache):
 def add_jobs(cache):
     todo = 0
     dao = WeiboTopicWriter(USED_DATABASE)
-    jobs = dao.read_topic_url_from_db()
-    for job in jobs:
+    for job in dao.read_topic_url_from_db():
         todo += 1
         try:
             cache.rpush(TOPIC_URL_QUEUE, job)
         except Exception as e:
             print e
+    print 'There are totally %d jobs to process' % todo
     return todo
 
 
 def run_all_worker():
-    job_cache = redis.StrictRedis(**USED_REDIS)  # list
-    # result_cache = redis.StrictRedis(**USED_REDIS)  # list
-    if not job_cache.llen(TOPIC_URL_QUEUE):
-        create_processes(add_jobs, (job_cache, ), 1)
+    r = redis.StrictRedis(**USED_REDIS)  # list
+    if not r.llen(TOPIC_URL_QUEUE):
+        create_processes(add_jobs, (r, ), 1)
+        print 'Add jobs done, I quit...'
+        return 0
     else:
-        print "Redis has %d records in cache" % job_cache.llen(TOPIC_URL_QUEUE)
-    job_pool = mp.Pool(processes=8,
-        initializer=generate_info, initargs=(job_cache, ))
-    result_pool = mp.Pool(processes=4, 
-        initializer=write_data, initargs=(job_cache, ))
+        print "Redis has %d records in cache" % r.llen(TOPIC_URL_QUEUE)
+    job_pool = mp.Pool(processes=4,
+        initializer=generate_info, initargs=(r, ))
+    result_pool = mp.Pool(processes=2, 
+        initializer=write_data, initargs=(r, ))
 
     cp = mp.current_process()
     print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
@@ -143,15 +124,15 @@ def run_all_worker():
         result_pool.close()
         job_pool.join()
         result_pool.join()
-        print "+"*10, "jobs' length is ", job_cache.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
-        print "+"*10, "results' length is ", job_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "jobs' length is ", r.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "results' length is ", r.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
     except Exception as e:
         traceback.print_exc()
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Exception raise in runn all Work"
     except KeyboardInterrupt:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Interrupted by you and quit in force, but save the results"
-        print "+"*10, "jobs' length is ", job_cache.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
-        print "+"*10, "results' length is ", job_cache.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "jobs' length is ", r.llen(TOPIC_URL_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
+        print "+"*10, "results' length is ", r.llen(TOPIC_INFO_QUEUE) #jobs.llen(TOPIC_URL_QUEUE)
 
 
 if __name__=="__main__":
