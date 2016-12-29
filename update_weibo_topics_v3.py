@@ -17,7 +17,6 @@ from zc_spider.weibo_config import (
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
 )
-from zc_spider.weibo_utils import create_processes
 from weibo_topic_spider import WeiboTopicSpider
 from weibo_topic_writer import WeiboTopicWriter
 
@@ -68,7 +67,7 @@ def generate_info(cache):
                 cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
-            print 'Raised in gen process', str(e)
+            print 'Failed to parse %s' % job
         except KeyboardInterrupt as e:
             break
 
@@ -85,7 +84,7 @@ def write_data(cache):
         try:
             dao.update_topics_into_db(pickle.loads(res))
         except Exception as e:  # won't let you died
-            print "?"*10, 'Raised in write process', e
+            print "?"*10, 'Failed to write %s' % pickle.loads(res)
             cache.rpush(TOPIC_INFO_CACHE, res)
         except KeyboardInterrupt as e:
             break
@@ -107,7 +106,7 @@ def add_jobs(cache):
 def run_all_worker():
     r = redis.StrictRedis(**USED_REDIS)  # list
     if not r.llen(TOPIC_URL_CACHE):
-        create_processes(add_jobs, (r, ), 1)
+        add_jobs(r)
         print 'Add jobs done, I quit...'
         return 0
     else:
