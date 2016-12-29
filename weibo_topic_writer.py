@@ -36,23 +36,28 @@ class WeiboTopicWriter(DBAccesor):
         """
         conn = self.connect_database()
         cursor = conn.cursor()
-        cursor.execute(insert_trend_sql, (
-            info['topic_url'], info['access_time'],
-            info.get('read_num', ''), info.get('read_num_dec', 0),
-            info.get('dis_num', ''), info.get('fans_num', ''),
-            info.get('image_url', ''), info['topic_url'],
-            info['access_time']
-        ))
-        cursor.execute(update_info_sql, (
-            info['title'], info['guide'],
-            info.get('read_num', ''), info.get('read_num_dec', 0),
-            info.get('dis_num', ''), info.get('fans_num', ''),
-            info.get('type', ''), info.get('region', ''),
-            info.get('label', ''), info['topic_url'],
-            info['image_url'], info['topic_url']
-        ))
-        print 'Writed topic and trend DONE(%s)!!!' % info['topic_url']
-        conn.commit(); cursor.close(); conn.close()
+        try:
+            cursor.execute(insert_trend_sql, (
+                info['topic_url'], info['access_time'],
+                info.get('read_num', ''), info.get('read_num_dec', 0),
+                info.get('dis_num', ''), info.get('fans_num', ''),
+                info.get('image_url', ''), info['topic_url'],
+                info['access_time']
+            ))
+            cursor.execute(update_info_sql, (
+                info['title'], info['guide'],
+                info.get('read_num', ''), info.get('read_num_dec', 0),
+                info.get('dis_num', ''), info.get('fans_num', ''),
+                info.get('type', ''), info.get('region', ''),
+                info.get('label', ''), info['topic_url'],
+                info['image_url'], info['topic_url']
+            ))
+            print 'Writed topic and trend DONE(%s)!!!' % info['topic_url']
+            conn.commit(); cursor.close(); conn.close()
+        except Exception as e:
+            traceback.print_exc()
+            conn.commit(); cursor.close(); conn.close()
+            raise Exception(str(e))
 
     @database_error_hunter
     def read_topic_url_from_db(self):  #, start_date, end_date, interval=7):
