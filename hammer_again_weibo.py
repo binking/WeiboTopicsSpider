@@ -17,7 +17,7 @@ exc_list = (Exception)
 if os.environ.get('SPIDER_ENV') == 'test':
     print "*"*10, "Run in Test environment"
     USED_REDIS = LOCAL_REDIS
-elif os.environ.get('HOSTNAME') == 'VM_20_202_centos': 
+elif 'centos' in os.environ.get('HOSTNAME'): 
     print "*"*10, "Run in Qcloud environment"
     USED_REDIS = QCLOUD_REDIS
 else:
