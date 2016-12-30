@@ -10,6 +10,7 @@ import traceback
 from datetime import datetime as dt
 import multiprocessing as mp
 from requests.exceptions import ConnectionError
+from zc_spider.weibo_utils import RedisException
 from zc_spider.weibo_config import (
     MANUAL_COOKIES,
     WEIBO_ERROR_TIME, WEIBO_ACCESS_TIME,
@@ -38,12 +39,6 @@ else:
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
 CURRENT_ACCOUNT = ''
 
-class RedisException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 def init_current_account(cache):
     print 'Initializing weibo account'
     global CURRENT_ACCOUNT
@@ -56,7 +51,7 @@ def init_current_account(cache):
 
 def switch_account(cache):
     global CURRENT_ACCOUNT
-    if cache.get(WEIBO_ERROR_TIME) and int(cache.get(WEIBO_ERROR_TIME)) > 9:  # error count
+    if cache.get(WEIBO_ERROR_TIME) and int(cache.get(WEIBO_ERROR_TIME)) > 99:  # error count
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'Swithching weibo account'
         expired_account = cache.get(WEIBO_CURRENT_ACCOUNT)
         access_times = cache.get(WEIBO_ACCESS_TIME)
@@ -85,7 +80,7 @@ def generate_info(cache):
     while True:
         sql = ''
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Follow Process pid is %d" % (cp.pid)
-        if error_count > 99:
+        if error_count > 999:
             print '>'*20, '1000 times of gen ERRORs, quit','<'*20
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
@@ -94,11 +89,15 @@ def generate_info(cache):
             cache.incr(WEIBO_ACCESS_TIME)
             spider = WeiboTopicSpider(job, CURRENT_ACCOUNT, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
-            spider.add_request_header()
+            # spider.add_request_header()
             spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES, CURRENT_ACCOUNT))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 print '404 or 20003'
+                continue
+            elif 'talk_home' in spider.page:
+                print 'Talk home'
+                cache.rpush(TOPIC_URL_CACHE, job+'/talk_home')
                 continue
             info = spider.parse_topic_info()
             if info:
@@ -115,9 +114,7 @@ def generate_info(cache):
             print 'Failed to parse job: %s' % job
             cache.incr(WEIBO_ERROR_TIME)
             error_count += 1
-        except KeyboardInterrupt as e:
-            break
-
+       
 
 def write_data(cache):
     """
