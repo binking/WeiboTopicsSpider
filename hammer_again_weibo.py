@@ -1,19 +1,27 @@
 #coding=utf-8
+import os
 import json
 import time
 import redis
 import base64
 import requests
-from zc_spider.weibo_config import *
 from zc_spider.weibo_config import (
-    WEIBO_ACCOUNT_LIST, 
-    WEIBO_ACCOUNT_PASSWD, 
-    ACTIVATED_COOKIE,
-    REDIS_SETTING,
+    WEIBO_MANUAL_COOKIES,
+    WEIBO_ACCOUNT_PASSWD, MANUAL_COOKIES,
+    ACTIVATED_COOKIE, LOCAL_REDIS,
+    QCLOUD_REDIS,
 )
 from zc_spider.weibo_utils import gen_abuyun_proxy, change_tunnel, retry
 exc_list = (Exception)
 
+if os.environ.get('SPIDER_ENV') == 'test':
+    print "*"*10, "Run in Test environment"
+    USED_REDIS = LOCAL_REDIS
+elif os.environ.get('HOSTNAME') == 'VM_20_202_centos': 
+    print "*"*10, "Run in Qcloud environment"
+    USED_REDIS = QCLOUD_REDIS
+else:
+    raise Exception("Unknown Environment, Check it now...")
 
 @retry(exc_list, tries=3, delay=3, backoff=2)
 def gen_cookie(account, pwd, proxy={}):
@@ -53,13 +61,14 @@ def gen_cookie(account, pwd, proxy={}):
         # logger.warning("Failed!( Reason:%s )" % info["reason"])
         # import ipdb; ipdb.set_trace()
         print "Failed!( Reason:%s )" % info["reason"].encode('utf8')
+        time.sleep(2)
     return cookie
 
 
 def init_cookie(rconn):
     failed_count = 0
     print "Length: ", len(WEIBO_ACCOUNT_LIST)
-    for account in WEIBO_ACCOUNT_LIST:
+    for account in WEIBO_ACCOUNT_LIST[::-1]:
         auth = '%s--%s' % (account, WEIBO_ACCOUNT_PASSWD)
         if auth in rconn.hkeys(ACTIVATED_COOKIE):
             continue
@@ -75,6 +84,14 @@ def init_cookie(rconn):
             print 'Failed in login too many times.'
             break
 
+def gen_curl_str(rconn):
+    for account in WEIBO_MANUAL_COOKIES:
+        # if account not in rconn.hkeys(MANUAL_COOKIES):
+        print "Write %s cookie into Redis" % account
+        rconn.hset(MANUAL_COOKIES, account, WEIBO_MANUAL_COOKIES[account])  # 1 means avaliable, 0 means not
+
+
 if __name__=='__main__':
-    r = redis.StrictRedis(**REDIS_SETTING)
-    init_cookie(r)
+    r = redis.StrictRedis(**USED_REDIS)
+    # init_cookie(r)
+    gen_curl_str(r)

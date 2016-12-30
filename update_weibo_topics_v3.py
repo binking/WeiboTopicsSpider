@@ -11,7 +11,8 @@ from datetime import datetime as dt
 import multiprocessing as mp
 from requests.exceptions import ConnectionError
 from zc_spider.weibo_config import (
-    WEIBO_MANUAL_COOKIES, MANUAL_COOKIES,
+    MANUAL_COOKIES,
+    WEIBO_ERROR_TIME, WEIBO_ACCESS_TIME,
     WEIBO_ACCOUNT_PASSWD, WEIBO_CURRENT_ACCOUNT,
     TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
     QCLOUD_MYSQL, OUTER_MYSQL,
@@ -37,30 +38,42 @@ else:
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
 CURRENT_ACCOUNT = ''
 
+class RedisException(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 def init_current_account(cache):
     print 'Initializing weibo account'
+    global CURRENT_ACCOUNT
     CURRENT_ACCOUNT = cache.hkeys(MANUAL_COOKIES)[0]
     print '1', CURRENT_ACCOUNT
-    cache.rpush(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT, 0, 0)
-    time.sleep(10)
-
+    cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
+    cache.set(WEIBO_ACCESS_TIME, 0)
+    cache.set(WEIBO_ERROR_TIME, 0)
+    
 
 def switch_account(cache):
-    print 'Swithching weibo account'
-    if cache.lindex(WEIBO_CURRENT_ACCOUNT, 2) > 10:  # error count
-        expired_account = cache.lpop(WEIBO_CURRENT_ACCOUNT)
-        access_times = cache.lpop(WEIBO_CURRENT_ACCOUNT)
-        error_times = cache.lpop(WEIBO_CURRENT_ACCOUNT)
-        print "Account(%s) access %d times but failed %d times" % expired_account, access_times, error_times
+    global CURRENT_ACCOUNT
+    if cache.get(WEIBO_ERROR_TIME) and int(cache.get(WEIBO_ERROR_TIME)) > 9:  # error count
+        print '^'*10, 'Swithching weibo account'
+        expired_account = cache.get(WEIBO_CURRENT_ACCOUNT)
+        access_times = cache.get(WEIBO_ACCESS_TIME)
+        error_times = cache.get(WEIBO_ERROR_TIME)
+        print "Account(%s) access %s times but failed %s times" % (expired_account, access_times, error_times)
         cache.hdel(MANUAL_COOKIES, expired_account)
-        new_account = cache.hkeys(MANUAL_COOKIES)[0]
-        cache.rpush(WEIBO_CURRENT_ACCOUNT, new_account, 0, 0)
+        if len(cache.hkeys(MANUAL_COOKIES)) == 0:
+            raise RedisException('All Weibo Accounts were run out of')
+        else:
+            new_account = cache.hkeys(MANUAL_COOKIES)[0]
+        # init again
+        cache.set(WEIBO_CURRENT_ACCOUNT, new_account)
+        cache.set(WEIBO_ACCESS_TIME, 0)
+        cache.set(WEIBO_ERROR_TIME, 0)
         CURRENT_ACCOUNT = new_account
-        print '2', CURRENT_ACCOUNT
     else:
-        CURRENT_ACCOUNT = cache.lindex(WEIBO_CURRENT_ACCOUNT, 0)
-        print '3', CURRENT_ACCOUNT
+        CURRENT_ACCOUNT = cache.get(WEIBO_CURRENT_ACCOUNT)
 
 
 def generate_info(cache):
@@ -72,13 +85,13 @@ def generate_info(cache):
     while True:
         sql = ''
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Follow Process pid is %d" % (cp.pid)
-        if error_count > 999:
+        if error_count > 99:
             print '>'*20, '1000 times of gen ERRORs, quit','<'*20
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
             switch_account(cache)
-            cache.lset(WEIBO_CURRENT_ACCOUNT, 1, cache.lindex(WEIBO_CURRENT_ACCOUNT, 1) + 1)
+            cache.incr(WEIBO_ACCESS_TIME)
             spider = WeiboTopicSpider(job, CURRENT_ACCOUNT, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
@@ -93,10 +106,14 @@ def generate_info(cache):
                     print "Invalid data(No three numbers) for uri: %s" % info['topic_url']
                     continue
                 cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
+        except RedisException as e:
+            print e
+            break
         except Exception as e:  # no matter what was raised, cannot let process died
+            print str(e)
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Failed to parse job: %s' % job
-            cache.lset(WEIBO_CURRENT_ACCOUNT, 2, cache.lindex(WEIBO_CURRENT_ACCOUNT, 2) + 1)
+            cache.incr(WEIBO_ERROR_TIME)
             error_count += 1
         except KeyboardInterrupt as e:
             break
