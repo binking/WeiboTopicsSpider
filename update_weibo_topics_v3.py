@@ -12,7 +12,7 @@ import multiprocessing as mp
 from requests.exceptions import ConnectionError
 from zc_spider.weibo_config import (
     WEIBO_MANUAL_COOKIES, MANUAL_COOKIES,
-    WEIBO_ACCOUNT_PASSWD, 
+    WEIBO_ACCOUNT_PASSWD, WEIBO_CURRENT_ACCOUNT,
     TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
@@ -35,6 +35,25 @@ else:
     raise Exception("Unknown Environment, Check it now...")
 
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
+CURREN_ACCOUNT = ''
+
+
+def init_current_account(cache):
+    CURREN_ACCOUNT = cache.hkeys(MANUAL_COOKIES)[0]
+
+
+def switch_account(cache):
+    if cache.lindex(WEIBO_CURRENT_ACCOUNT, 2) > 1000:  # error count
+        expired_account = cache.lpop(WEIBO_CURRENT_ACCOUNT)
+        access_times = cache.lpop(WEIBO_CURRENT_ACCOUNT)
+        error_times = cache.lpop(WEIBO_CURRENT_ACCOUNT)
+        print "Account(%s) access %d times but failed %d times" % expired_account, access_times, error_times
+        cache.hdel(MANUAL_COOKIES, expired_account)
+        new_account = cache.hkeys(MANUAL_COOKIES)[0]
+        cache.rpush(WEIBO_CURRENT_ACCOUNT, new_account, 0, 0)
+        CURREN_ACCOUNT = new_account
+    else:
+        CURREN_ACCOUNT = cache.lindex(WEIBO_CURRENT_ACCOUNT, 0)
 
 
 def generate_info(cache):
@@ -51,15 +70,11 @@ def generate_info(cache):
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
-            all_account = cache.hkeys(MANUAL_COOKIES)
-            if not all_account:  # no any weibo account
-                raise Exception('All of your accounts were Freezed')
-            account = random.choice(all_account)
-            # operate spider
-            spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
+            switch_account(cache)
+            spider = WeiboTopicSpider(job, CURREN_ACCOUNT, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
-            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES,account))
+            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES, CURREN_ACCOUNT))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 continue
@@ -71,7 +86,7 @@ def generate_info(cache):
                 cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
-            print 'Failed to parse %s' % job
+            print 'Failed to parse job: %s' % job
             error_count += 1
         except KeyboardInterrupt as e:
             break
@@ -93,7 +108,7 @@ def write_data(cache):
         try:
             dao.update_topics_into_db(pickle.loads(res))
         except Exception as e:  # won't let you died
-            print "?"*10, 'Failed to write %s' % pickle.loads(res)
+            print 'Failed to write result: %s' % pickle.loads(res)
             cache.rpush(TOPIC_INFO_CACHE, res)
             error_count += 1
         except KeyboardInterrupt as e:
@@ -121,6 +136,7 @@ def run_all_worker():
         return 0
     else:
         print "Redis has %d records in cache" % r.llen(TOPIC_URL_CACHE)
+    init_current_account(r)
     job_pool = mp.Pool(processes=4,
         initializer=generate_info, initargs=(r, ))
     result_pool = mp.Pool(processes=2, 
