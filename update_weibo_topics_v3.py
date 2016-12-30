@@ -41,10 +41,14 @@ def generate_info(cache):
     """
     Producer for users(cache) and follows(cache), Consummer for topics
     """
+    error_count = 0
     cp = mp.current_process()
     while True:
         sql = ''
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Follow Process pid is %d" % (cp.pid)
+        if error_count > 999:
+            print '>'*20, '1000 times of gen ERRORs, quit','<'*20
+            break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
             all_account = cache.hkeys(MANUAL_COOKIES)
@@ -68,6 +72,7 @@ def generate_info(cache):
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Failed to parse %s' % job
+            error_count += 1
         except KeyboardInterrupt as e:
             break
 
@@ -77,15 +82,20 @@ def write_data(cache):
     Consummer for topics
     """
     cp = mp.current_process()
+    error_count = 0
     dao = WeiboTopicWriter(USED_DATABASE)
     while True:
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Follow Process pid is %d" % (cp.pid)
+        if error_count > 999:
+            print '>'*20, '1000 times of write ERRORs, quit','<'*20
+            break
         res = cache.blpop(TOPIC_INFO_CACHE, 0)[1]
         try:
             dao.update_topics_into_db(pickle.loads(res))
         except Exception as e:  # won't let you died
             print "?"*10, 'Failed to write %s' % pickle.loads(res)
             cache.rpush(TOPIC_INFO_CACHE, res)
+            error_count += 1
         except KeyboardInterrupt as e:
             break
             
