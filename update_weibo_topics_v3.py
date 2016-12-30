@@ -43,6 +43,7 @@ def init_current_account(cache):
     CURRENT_ACCOUNT = cache.hkeys(MANUAL_COOKIES)[0]
     print '1', CURRENT_ACCOUNT
     cache.rpush(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT, 0, 0)
+    time.sleep(10)
 
 
 def switch_account(cache):
@@ -77,6 +78,7 @@ def generate_info(cache):
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
             switch_account(cache)
+            cache.lset(WEIBO_CURRENT_ACCOUNT, 1, cache.lindex(WEIBO_CURRENT_ACCOUNT, 1) + 1)
             spider = WeiboTopicSpider(job, CURRENT_ACCOUNT, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
@@ -94,6 +96,7 @@ def generate_info(cache):
         except Exception as e:  # no matter what was raised, cannot let process died
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Failed to parse job: %s' % job
+            cache.lset(WEIBO_CURRENT_ACCOUNT, 2, cache.lindex(WEIBO_CURRENT_ACCOUNT, 2) + 1)
             error_count += 1
         except KeyboardInterrupt as e:
             break
