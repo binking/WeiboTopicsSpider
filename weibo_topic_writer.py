@@ -45,7 +45,7 @@ class WeiboTopicWriter(DBAccesor):
                 info['access_time']
             ))
             cursor.execute(update_info_sql, (
-                info['title'], info['guide'],
+                info['title'], info.get('guide', ''),
                 info.get('read_num', ''), info.get('read_num_dec', 0),
                 info.get('dis_num', ''), info.get('fans_num', ''),
                 info.get('type', ''), info.get('region', ''),
