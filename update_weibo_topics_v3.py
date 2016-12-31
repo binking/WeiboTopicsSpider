@@ -44,9 +44,10 @@ def init_current_account(cache):
     global CURRENT_ACCOUNT
     CURRENT_ACCOUNT = cache.hkeys(MANUAL_COOKIES)[0]
     print '1', CURRENT_ACCOUNT
-    cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
-    cache.set(WEIBO_ACCESS_TIME, 0)
-    cache.set(WEIBO_ERROR_TIME, 0)
+    if not cache.get(WEIBO_CURRENT_ACCOUNT):
+        cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
+        cache.set(WEIBO_ACCESS_TIME, 0)
+        cache.set(WEIBO_ERROR_TIME, 0)
     
 
 def switch_account(cache):
@@ -59,6 +60,9 @@ def switch_account(cache):
         print "Account(%s) access %s times but failed %s times" % (expired_account, access_times, error_times)
         cache.hdel(MANUAL_COOKIES, expired_account)
         if len(cache.hkeys(MANUAL_COOKIES)) == 0:
+            cache.delete(WEIBO_CURRENT_ACCOUNT)
+            cache.set(WEIBO_ACCESS_TIME, 0)
+            cache.set(WEIBO_ERROR_TIME, 0)
             raise RedisException('All Weibo Accounts were run out of')
         else:
             new_account = cache.hkeys(MANUAL_COOKIES)[0]
