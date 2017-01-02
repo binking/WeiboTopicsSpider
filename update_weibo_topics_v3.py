@@ -91,12 +91,12 @@ def generate_info(cache):
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
-            switch_account(cache)
-            cache.incr(WEIBO_ACCESS_TIME)
-            spider = WeiboTopicSpider(job, CURRENT_ACCOUNT, WEIBO_ACCOUNT_PASSWD, timeout=20)
+            all_account = cache.hkeys(MANUAL_COOKIES)
+            account = random.choice(all_account)
+            spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             # spider.add_request_header()
-            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES, CURRENT_ACCOUNT))
+            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES, account))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 print '404 or 20003'
@@ -118,7 +118,7 @@ def generate_info(cache):
             print str(e)
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Failed to parse job: %s' % job
-            cache.incr(WEIBO_ERROR_TIME)
+            # cache.incr(WEIBO_ERROR_TIME)
             error_count += 1
        
 
