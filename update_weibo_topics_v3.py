@@ -101,7 +101,7 @@ def generate_info(cache):
             if status in [404, 20003]:
                 print '404 or 20003'
                 continue
-            elif 'talk_home' in spider.page:
+            elif 'talk_home' in spider.page and 'talk_home' not in job:
                 print 'Talk home'
                 cache.rpush(TOPIC_URL_CACHE, job+'/talk_home')
                 continue
@@ -109,8 +109,8 @@ def generate_info(cache):
             if info:
                 if not(info.get('read_num') and info.get('dis_num') and info.get('fans_num')):
                     print "Invalid data(No three numbers) for uri: %s" % info['topic_url']
-                    continue
-                cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
+                elif len(info) > 4:
+                    cache.rpush(TOPIC_INFO_CACHE, pickle.dumps(info))  # push ele to the tail
         except RedisException as e:
             print e
             break
@@ -118,7 +118,6 @@ def generate_info(cache):
             print str(e)
             cache.rpush(TOPIC_URL_CACHE, job) # put job back
             print 'Failed to parse job: %s' % job
-            # cache.incr(WEIBO_ERROR_TIME)
             error_count += 1
        
 

@@ -24,9 +24,14 @@ class WeiboTopicSpider(WeiboSpider):
         meta_tag = parser.find('meta', {'name': 'description'})
         if meta_tag:  # guide is optional
             self.topic_info['guide'] = meta_tag.get('content', '').encode('utf8').strip()
+        title_tag = parser.find('title')
+        if title_tag:
+            self.topic_info['title'] = title_tag.text.replace(' - 在微话题一起聊聊吧！', '')
         image_url_parser = None; stat_nums_parser = None; about_parser = None
         for script in parser.find_all('script'):
             script_text = script.text.encode('utf8')
+            if 'FM.view(' not in script_text or len(script_text) < 500:
+                continue
             if 'pf_head S_bg2 S_line1' in script_text and "\"html\"" in script_text:
                 # import ipdb; ipdb.set_trace()
                 image_url_parser = bs(json.loads(script.text[8:-1])['html'], 'html.parser')
@@ -40,15 +45,14 @@ class WeiboTopicSpider(WeiboSpider):
         # import ipdb; ipdb.set_trace()
         if image_url_parser:
             div_tag = image_url_parser.find('div', {'class': 'pf_username clearfix'})
-            if div_tag and div_tag.find('h1'):
-                self.topic_info['title'] = div_tag.find('h1').get('title', '').strip()[1:-1]  # remove # sign
+            # if div_tag and div_tag.find('h1'):
+            #     self.topic_info['title'] = div_tag.find('h1').get('title', '').strip()[1:-1]  # remove # sign
             div_tag = image_url_parser.find('div', {'class': 'pf_head S_bg2 S_line1'})
             if div_tag and div_tag.find('img'):
                 self.topic_info['image_url'] = div_tag.find('img').get('src')
         # extract the numbers of read, discuss, and fans
         if stat_nums_parser:
             div_tag = stat_nums_parser.find('div', {'class': 'PCD_counter'})
-            
             if div_tag and len(div_tag.find_all(attrs={'class': re.compile(r'W_f')})) == 3:  # span or strong
                 # info_dict['read_num'] = chin_num2dec(div_tag.find_all(attrs={'class': re.compile(r'W_f')})[0].text)
                 self.topic_info['read_num'] = div_tag.find_all(attrs={'class': re.compile(r'W_f')})[0].text.strip()
@@ -79,7 +83,10 @@ class WeiboTopicSpider(WeiboSpider):
                     self.topic_info['label'] = detail
         if self.topic_info.get('title') and self.topic_info.get('image_url'):  # can't be none
             self.topic_info['access_time'] = dt.now().strftime('%Y-%m-%d %H:%M:%S')
-            self.topic_info['topic_url'] = self.url
+            if 'talk_home' in self.url:
+                self.topic_info['topic_url'] = self.url[:-10]
+            else:
+                self.topic_info['topic_url'] = self.url
         return self.topic_info
 
 """
