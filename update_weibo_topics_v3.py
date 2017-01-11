@@ -12,7 +12,7 @@ import multiprocessing as mp
 from requests.exceptions import ConnectionError
 from zc_spider.weibo_utils import RedisException
 from zc_spider.weibo_config import (
-    MANUAL_COOKIES,
+    TOPIC_COOIKES,
     WEIBO_ERROR_TIME, WEIBO_ACCESS_TIME,
     WEIBO_ACCOUNT_PASSWD, WEIBO_CURRENT_ACCOUNT,
     TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
@@ -42,7 +42,7 @@ CURRENT_ACCOUNT = ''
 def init_current_account(cache):
     print 'Initializing weibo account'
     global CURRENT_ACCOUNT
-    CURRENT_ACCOUNT = cache.hkeys(MANUAL_COOKIES)[0]
+    CURRENT_ACCOUNT = cache.hkeys(TOPIC_COOIKES)[0]
     print '1', CURRENT_ACCOUNT
     if not cache.get(WEIBO_CURRENT_ACCOUNT):
         cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
@@ -58,14 +58,14 @@ def switch_account(cache):
         access_times = cache.get(WEIBO_ACCESS_TIME)
         error_times = cache.get(WEIBO_ERROR_TIME)
         print "Account(%s) access %s times but failed %s times" % (expired_account, access_times, error_times)
-        cache.hdel(MANUAL_COOKIES, expired_account)
-        if len(cache.hkeys(MANUAL_COOKIES)) == 0:
+        cache.hdel(TOPIC_COOIKES, expired_account)
+        if len(cache.hkeys(TOPIC_COOIKES)) == 0:
             cache.delete(WEIBO_CURRENT_ACCOUNT)
             cache.set(WEIBO_ACCESS_TIME, 0)
             cache.set(WEIBO_ERROR_TIME, 0)
             raise RedisException('All Weibo Accounts were run out of')
         else:
-            new_account = cache.hkeys(MANUAL_COOKIES)[0]
+            new_account = cache.hkeys(TOPIC_COOIKES)[0]
         # init again
         cache.set(WEIBO_CURRENT_ACCOUNT, new_account)
         cache.set(WEIBO_ACCESS_TIME, 0)
@@ -91,12 +91,12 @@ def generate_info(cache):
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
-            all_account = cache.hkeys(MANUAL_COOKIES)
+            all_account = cache.hkeys(TOPIC_COOIKES)
             account = random.choice(all_account)
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             # spider.add_request_header()
-            spider.use_cookie_from_curl(cache.hget(MANUAL_COOKIES, account))
+            spider.use_cookie_from_curl(cache.hget(TOPIC_COOIKES, account))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 print '404 or 20003'
