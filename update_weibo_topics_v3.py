@@ -166,9 +166,9 @@ def run_all_worker():
     else:
         print "Redis has %d records in cache" % r.llen(TOPIC_URL_CACHE)
     # init_current_account(r)
-    job_pool = mp.Pool(processes=4,
+    job_pool = mp.Pool(processes=8,
         initializer=generate_info, initargs=(r, ))
-    result_pool = mp.Pool(processes=2, 
+    result_pool = mp.Pool(processes=4, 
         initializer=write_data, initargs=(r, ))
 
     cp = mp.current_process()
