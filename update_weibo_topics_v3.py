@@ -12,7 +12,7 @@ import multiprocessing as mp
 from requests.exceptions import ConnectionError
 from zc_spider.weibo_utils import RedisException
 from zc_spider.weibo_config import (
-    TOPIC_COOIKES,
+    TOPIC_COOKIES,
     WEIBO_ERROR_TIME, WEIBO_ACCESS_TIME,
     WEIBO_ACCOUNT_PASSWD, WEIBO_CURRENT_ACCOUNT,
     TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
