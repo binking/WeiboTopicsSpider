@@ -42,7 +42,7 @@ CURRENT_ACCOUNT = ''
 def init_current_account(cache):
     print 'Initializing weibo account'
     global CURRENT_ACCOUNT
-    CURRENT_ACCOUNT = cache.hkeys(TOPIC_COOIKES)[0]
+    CURRENT_ACCOUNT = cache.hkeys(TOPIC_COOKIES)[0]
     print '1', CURRENT_ACCOUNT
     if not cache.get(WEIBO_CURRENT_ACCOUNT):
         cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
@@ -58,14 +58,14 @@ def switch_account(cache):
         access_times = cache.get(WEIBO_ACCESS_TIME)
         error_times = cache.get(WEIBO_ERROR_TIME)
         print "Account(%s) access %s times but failed %s times" % (expired_account, access_times, error_times)
-        cache.hdel(TOPIC_COOIKES, expired_account)
-        if len(cache.hkeys(TOPIC_COOIKES)) == 0:
+        cache.hdel(TOPIC_COOKIES, expired_account)
+        if len(cache.hkeys(TOPIC_COOKIES)) == 0:
             cache.delete(WEIBO_CURRENT_ACCOUNT)
             cache.set(WEIBO_ACCESS_TIME, 0)
             cache.set(WEIBO_ERROR_TIME, 0)
             raise RedisException('All Weibo Accounts were run out of')
         else:
-            new_account = cache.hkeys(TOPIC_COOIKES)[0]
+            new_account = cache.hkeys(TOPIC_COOKIES)[0]
         # init again
         cache.set(WEIBO_CURRENT_ACCOUNT, new_account)
         cache.set(WEIBO_ACCESS_TIME, 0)
@@ -91,12 +91,12 @@ def generate_info(cache):
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
-            all_account = cache.hkeys(TOPIC_COOIKES)
+            all_account = cache.hkeys(TOPIC_COOKIES)
             account = random.choice(all_account)
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             # spider.add_request_header()
-            spider.use_cookie_from_curl(cache.hget(TOPIC_COOIKES, account))
+            spider.use_cookie_from_curl(cache.hget(TOPIC_COOKIES, account))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 print '404 or 20003'
