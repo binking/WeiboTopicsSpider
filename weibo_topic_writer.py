@@ -74,7 +74,7 @@ class WeiboTopicWriter(DBAccesor):
         select_topic_sql = """
             SELECT DISTINCT topic_url FROM topicinfo 
             -- WHERE  theme LIKE '新浪微博_热门话题%' 
-            WHERE createdate > date_sub(NOW(), INTERVAL 30 DAY )
+            WHERE createdate > date_sub(NOW(), INTERVAL 5 DAY )
             -- Update 30 days' Topics Detail pre day
         """
         conn = self.connect_database()
