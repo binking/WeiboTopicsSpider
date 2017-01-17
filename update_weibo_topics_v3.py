@@ -5,7 +5,6 @@ import time
 import redis
 import random
 import pickle
-import argparse
 import traceback
 from datetime import datetime as dt
 import multiprocessing as mp
