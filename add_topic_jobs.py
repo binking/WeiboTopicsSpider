@@ -10,7 +10,7 @@ from zc_spider.weibo_config import (
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
 )
-from weibo_blogs_writer import WeiboTopicWriter
+from weibo_topic_writer import WeiboTopicWriter
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -46,4 +46,7 @@ if __name__=='__main__':
     r = redis.StrictRedis(**USED_REDIS)
     add_jobs(r)
     print "*"*10, "Totally Scraped Weibo Tweets Time Consumed : %d seconds" % (time.time() - start), "*"*10
-    
+
+"""
+33 */3 * * * . /etc/profile; cd /home/jiangzhibin/PythonProgramming/ZhicangSpiders/WeiboTopicsSpider;  /home/jiangzhibin/PythonProgramming/ZhicangSpiders/spider_env/bin/python add_topic_jobs.py >> ./log/add_topic_jobs.log 2>&1
+"""
