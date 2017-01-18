@@ -36,44 +36,6 @@ else:
     raise Exception("Unknown Environment, Check it now...")
 
 TEST_CURL_SER = "curl 'http://d.weibo.com/' -H 'Accept-Encoding: gzip, deflate, sdch' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Cache-Control: max-age=0' -H 'Cookie: _T_WM=52765f5018c5d34c5f77302463042cdf; ALF=1484204272; SUB=_2A251S-ugDeTxGeNH41cV8CbLyTWIHXVWt_XorDV8PUJbkNAKLWbBkW0_fe7_8gLTd0veLjcMNIpRdG9dKA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhZLMdo2m4y1PHxGYdNTkzk5JpX5oz75NHD95Qf1KnfSh5RS0z4Ws4Dqcj_i--ciKLsi-z0i--RiK.pi-2pi--ci-zfiK.0i--fi-zEi-zRi--ciKy2i-2E; TC-Page-G0=cdcf495cbaea129529aa606e7629fea7' -H 'Connection: keep-alive' --compressed"
-CURRENT_ACCOUNT = ''
-
-def init_current_account(cache):
-    print 'Initializing weibo account'
-    global CURRENT_ACCOUNT
-    CURRENT_ACCOUNT = cache.hkeys(TOPIC_COOKIES)[0]
-    print '1', CURRENT_ACCOUNT
-    if not cache.get(WEIBO_CURRENT_ACCOUNT):
-        cache.set(WEIBO_CURRENT_ACCOUNT, CURRENT_ACCOUNT)
-        cache.set(WEIBO_ACCESS_TIME, 0)
-        cache.set(WEIBO_ERROR_TIME, 0)
-    
-
-def switch_account(cache):
-    global CURRENT_ACCOUNT
-    if cache.get(WEIBO_ERROR_TIME) and int(cache.get(WEIBO_ERROR_TIME)) > 9999:  # error count
-        print dt.now().strftime("%Y-%m-%d %H:%M:%S"), 'Swithching weibo account'
-        expired_account = cache.get(WEIBO_CURRENT_ACCOUNT)
-        access_times = cache.get(WEIBO_ACCESS_TIME)
-        error_times = cache.get(WEIBO_ERROR_TIME)
-        print "Account(%s) access %s times but failed %s times" % (expired_account, access_times, error_times)
-        cache.hdel(TOPIC_COOKIES, expired_account)
-        if len(cache.hkeys(TOPIC_COOKIES)) == 0:
-            cache.delete(WEIBO_CURRENT_ACCOUNT)
-            cache.set(WEIBO_ACCESS_TIME, 0)
-            cache.set(WEIBO_ERROR_TIME, 0)
-            raise RedisException('All Weibo Accounts were run out of')
-        else:
-            new_account = cache.hkeys(TOPIC_COOKIES)[0]
-        # init again
-        cache.set(WEIBO_CURRENT_ACCOUNT, new_account)
-        cache.set(WEIBO_ACCESS_TIME, 0)
-        cache.set(WEIBO_ERROR_TIME, 0)
-        CURRENT_ACCOUNT = new_account
-    elif cache.get(WEIBO_CURRENT_ACCOUNT):
-        CURRENT_ACCOUNT = cache.get(WEIBO_CURRENT_ACCOUNT)
-    else:
-        raise Exception('Unknown Account Error')
 
 
 def generate_info(cache):
@@ -84,7 +46,7 @@ def generate_info(cache):
     cp = mp.current_process()
     while True:
         sql = ''
-        print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Follow Process pid is %d" % (cp.pid)
+        print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Topic Process pid is %d" % (cp.pid)
         if error_count > 999:
             print '>'*20, '1000 times of gen ERRORs, quit','<'*20
             break
@@ -94,7 +56,7 @@ def generate_info(cache):
             account = random.choice(all_account)
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
-            # spider.add_request_header()
+            spider.add_request_header()
             spider.use_cookie_from_curl(cache.hget(TOPIC_COOKIES, account))
             status = spider.gen_html_source()
             if status in [404, 20003]:
@@ -128,7 +90,7 @@ def write_data(cache):
     error_count = 0
     dao = WeiboTopicWriter(USED_DATABASE)
     while True:
-        print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Follow Process pid is %d" % (cp.pid)
+        print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Write Topic Process pid is %d" % (cp.pid)
         if error_count > 999:
             print '>'*20, '1000 times of write ERRORs, quit','<'*20
             break
@@ -136,12 +98,11 @@ def write_data(cache):
         try:
             dao.update_topics_into_db(pickle.loads(res))
         except Exception as e:  # won't let you died
+            traceback.print_exc()
             print 'Failed to write result: %s' % pickle.loads(res)
             cache.rpush(TOPIC_INFO_CACHE, res)
             error_count += 1
-        except KeyboardInterrupt as e:
-            break
-            
+    
 
 def add_jobs(cache):
     todo = 0
@@ -158,13 +119,8 @@ def add_jobs(cache):
 
 def run_all_worker():
     r = redis.StrictRedis(**USED_REDIS)  # list
-    if not r.llen(TOPIC_URL_CACHE):
-        add_jobs(r)
-        print 'Add jobs done, I quit...'
-        return 0
-    else:
-        print "Redis has %d records in cache" % r.llen(TOPIC_URL_CACHE)
-    # init_current_account(r)
+    print "Redis has %d records in cache" % r.llen(TOPIC_URL_CACHE)
+
     job_pool = mp.Pool(processes=4,
         initializer=generate_info, initargs=(r, ))
     result_pool = mp.Pool(processes=2, 
@@ -173,10 +129,8 @@ def run_all_worker():
     cp = mp.current_process()
     print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Run All Works Process pid is %d" % (cp.pid)
     try:
-        job_pool.close()
-        result_pool.close()
-        job_pool.join()
-        result_pool.join()
+        job_pool.close(); result_pool.close()
+        job_pool.join(); result_pool.join()
         print "+"*10, "jobs' length is ", r.llen(TOPIC_URL_CACHE) #jobs.llen(TOPIC_URL_CACHE)
         print "+"*10, "results' length is ", r.llen(TOPIC_INFO_CACHE) #jobs.llen(TOPIC_URL_CACHE)
     except Exception as e:
