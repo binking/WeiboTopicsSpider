@@ -42,10 +42,12 @@ def generate_info(cache):
     """
     Producer for users(cache) and follows(cache), Consummer for topics
     """
+    loop_count = 0
     error_count = 0
     cp = mp.current_process()
     while True:
         sql = ''
+        loop_count += 1
         print dt.now().strftime("%Y-%m-%d %H:%M:%S"), "Generate Topic Process pid is %d" % (cp.pid)
         if error_count > 999:
             print '>'*20, '1000 times of gen ERRORs, quit','<'*20
@@ -53,6 +55,9 @@ def generate_info(cache):
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
             all_account = cache.hkeys(TOPIC_COOKIES)
+            if len(all_account) == 0:
+                time.sleep(pow(2, loop_count))
+                continue
             account = random.choice(all_account)
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()

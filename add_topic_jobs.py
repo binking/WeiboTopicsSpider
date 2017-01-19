@@ -41,11 +41,11 @@ def add_jobs(target):
     return todo
 
 if __name__=='__main__':
-    print "\n\n" + "%s Began Scraped Weibo Tweets" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
+    print "\n\n" + "%s Began Update Weibo Topics" % dt.now().strftime("%Y-%m-%d %H:%M:%S") + "\n"
     start = time.time()
     r = redis.StrictRedis(**USED_REDIS)
     add_jobs(r)
-    print "*"*10, "Totally Scraped Weibo Tweets Time Consumed : %d seconds" % (time.time() - start), "*"*10
+    print "*"*10, "Totally Time Consumed : %d seconds" % (time.time() - start), "*"*10
 
 """
 33 */3 * * * . /etc/profile; cd /home/jiangzhibin/PythonProgramming/ZhicangSpiders/WeiboTopicsSpider;  /home/jiangzhibin/PythonProgramming/ZhicangSpiders/spider_env/bin/python add_topic_jobs.py >> ./log/add_topic_jobs.log 2>&1
