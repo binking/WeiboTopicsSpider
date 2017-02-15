@@ -30,7 +30,7 @@ class WeiboTopicWriter(DBAccesor):
             WHERE topic_url = %s AND crawl_dt = %s)
         """
         update_info_sql = """
-            UPDATE topicinfo 
+            UPDATE weibotopic 
             set title=%s, introduction=%s, read_num=%s, read_num_dec=%s, discussion_num=%s, fans_num=%s, topic_type=%s, topic_region=%s, label=%s, topic_url=%s, logo_img_url=%s
             WHERE topic_url=%s
         """
@@ -72,7 +72,7 @@ class WeiboTopicWriter(DBAccesor):
         #     AND is_active = 1
         # """
         select_topic_sql = """
-            SELECT DISTINCT topic_url FROM topicinfo 
+            SELECT DISTINCT topic_url FROM weibotopic 
             -- WHERE  theme LIKE '新浪微博_热门话题%' 
             WHERE createdate > date_sub(NOW(), INTERVAL 5 DAY )
             -- Update 30 days' Topics Detail pre day
