@@ -23,10 +23,10 @@ class WeiboTopicWriter(DBAccesor):
             dis_num:, fans_num:, guide:, image_url:, }
         """
         insert_trend_sql = """
-            INSERT INTO topictrend (topic_url, crawl_dt, read_num, read_num_dec, discussion_num, fans_num, logo_img_url) 
+            INSERT INTO WeiboTrend (topic_url, crawl_dt, read_num, read_num_dec, discussion_num, fans_num, logo_img_url) 
             SELECT %s, %s, %s, %s, %s, %s, %s
             FROM DUAL WHERE NOT EXISTS (
-            SELECT * FROM topictrend 
+            SELECT * FROM WeiboTrend 
             WHERE topic_url = %s AND crawl_dt = %s)
         """
         update_info_sql = """
