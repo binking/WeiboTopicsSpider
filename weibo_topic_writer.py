@@ -38,7 +38,8 @@ class WeiboTopicWriter(DBAccesor):
         """
         update_info_sql_2 = """
             UPDATE Topicinfo 
-            set introduction=%s, topic_type=%s, topic_region=%s, label=%s, logo_img_url=%s
+            SET introduction=%s, weibo_read_num=%s, weibo_read_num_dec=%s,
+            topic_type=%s, topic_region=%s, label=%s, logo_img_url=%s
             WHERE title=%s
         """
         conn = self.connect_database()
@@ -62,7 +63,8 @@ class WeiboTopicWriter(DBAccesor):
                 info['image_url'], info['topic_url']
             ))
             cursor.execute(update_info_sql_2, (
-                info.get('guide', ''), info.get('type', ''), 
+                info.get('guide', ''), info['read_num'],
+                info['read_num_dec'], info.get('type', ''), 
                 info.get('region', ''), info.get('label', ''),
                 info['image_url'], info['title']
             ))
