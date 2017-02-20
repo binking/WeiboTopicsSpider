@@ -58,15 +58,15 @@ class WeiboTopicWriter(DBAccesor):
                 info['title'], info.get('guide', ''),
                 info.get('read_num', ''), info.get('read_num_dec', 0),
                 info.get('dis_num', ''), info.get('fans_num', ''),
-                info.get('type', ''), info.get('label', ''), 
-                info['topic_url'], info['image_url'], 
-                info['topic_url']
+                info.get('type', ''), info.get('region', ''),
+                info.get('label', ''), info['topic_url'],
+                info['image_url'], info['topic_url']
             ))
             cursor.execute(update_info_sql_2, (
                 info.get('guide', ''), info['read_num'],
                 info['read_num_dec'], info.get('type', ''), 
-                info.get('region', ''), info.get('label', ''),
-                info['image_url'], info['title']
+                info.get('label', ''), info['image_url'], 
+                info['title']
             ))
             print 'Writed topic and trend DONE(%s)!!!' % info['title']
             conn.commit(); cursor.close(); conn.close()
