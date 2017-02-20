@@ -36,8 +36,6 @@ class WeiboTopicWriter(DBAccesor):
             label=%s, topic_url=%s, logo_img_url=%s
             WHERE topic_url=%s
         """
-        Topicinfo(createdate, title, logo_img_url, label, introduction, topic_type, 
-keywords, event_class)
         update_info_sql_2 = """
             UPDATE Topicinfo 
             set introduction=%s, topic_type=%s, topic_region=%s, label=%s, logo_img_url=%s
