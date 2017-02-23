@@ -11,9 +11,7 @@ import multiprocessing as mp
 from requests.exceptions import ConnectionError
 from zc_spider.weibo_utils import RedisException
 from zc_spider.weibo_config import (
-    TOPIC_COOKIES,
-    WEIBO_ERROR_TIME, WEIBO_ACCESS_TIME,
-    WEIBO_ACCOUNT_PASSWD, WEIBO_CURRENT_ACCOUNT,
+    WEIBO_COOKIES, WEIBO_ACCOUNT_PASSWD,
     TOPIC_URL_CACHE, TOPIC_INFO_CACHE,
     QCLOUD_MYSQL, OUTER_MYSQL,
     LOCAL_REDIS, QCLOUD_REDIS
@@ -54,7 +52,7 @@ def generate_info(cache):
             break
         job = cache.blpop(TOPIC_URL_CACHE, 0)[1]   # blpop 获取队列数据
         try:
-            all_account = cache.hkeys(TOPIC_COOKIES)
+            all_account = cache.hkeys(WEIBO_COOKIES)
             if len(all_account) == 0:
                 time.sleep(pow(2, loop_count))
                 continue
@@ -62,7 +60,7 @@ def generate_info(cache):
             spider = WeiboTopicSpider(job, account, WEIBO_ACCOUNT_PASSWD, timeout=20)
             spider.use_abuyun_proxy()
             spider.add_request_header()
-            spider.use_cookie_from_curl(cache.hget(TOPIC_COOKIES, account))
+            spider.use_cookie_from_curl(cache.hget(WEIBO_COOKIES, account))
             status = spider.gen_html_source()
             if status in [404, 20003]:
                 print '404 or 20003'
