@@ -45,8 +45,6 @@ class WeiboTopicWriter(DBAccesor):
         conn = self.connect_database()
         cursor = conn.cursor()
         try:
-            if not info.get('guide', ''):
-                print info
             cursor.execute(insert_trend_sql, (
                 info['topic_url'], info['access_time'],
                 info.get('read_num', ''), info.get('read_num_dec', 0),
@@ -55,15 +53,15 @@ class WeiboTopicWriter(DBAccesor):
                 info['access_time']
             ))
             cursor.execute(update_info_sql_1, (
-                info['title'], info.get('guide', ''),
+                info['title'], '', # info.get('guide', ''),
                 info.get('read_num', ''), info.get('read_num_dec', 0),
                 info.get('dis_num', ''), info.get('fans_num', ''),
                 info.get('type', ''), info.get('region', ''),
                 info.get('label', ''), info['topic_url'],
                 info['image_url'], info['topic_url']
             ))
-            cursor.execute(update_info_sql_2, (
-                info.get('guide', ''), info['read_num'],
+            cursor.execute(update_info_sql_2, ('',  # info.get('guide', ''), 
+                info['read_num'],
                 info['read_num_dec'], info.get('type', ''), 
                 info.get('label', ''), info['image_url'], 
                 info['title']
